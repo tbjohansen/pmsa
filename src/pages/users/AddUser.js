@@ -107,7 +107,7 @@ const AddUser = () => {
           setLoading(false);
           console.log("Error creating new user:", error);
         });
-    }n2
+    }
   };
 
   const addUserToBucket = async (id) => {

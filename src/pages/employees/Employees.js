@@ -114,15 +114,15 @@ const EmployeeStatus = ({ employee }) => {
     <Popconfirm
       title="Change Status"
       description={`Are you sure you want to ${
-        user?.status ? "deactivate" : "activate"
+        employee?.status ? "deactivate" : "activate"
       } this employee?`}
       okText="Yes"
       cancelText="No"
       onConfirm={changeStatus}
     >
       <Switch
-        checked={user?.status}
-        className={user?.status ? null : `bg-[#F24E1E] rounded-full`}
+        checked={employee?.status}
+        className={employee?.status ? null : `bg-zinc-300 rounded-full`}
       />
     </Popconfirm>
   );
