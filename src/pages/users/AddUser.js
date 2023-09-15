@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { getAuth } from "firebase/auth";
-import { auth, db } from "../../App";
-import { collection, getDocs, doc, setDoc, Timestamp } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { db } from "../../App";
+import {
+  collection,
+  getDocs,
+  Timestamp,
+} from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Autocomplete, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { message } from "antd";
 import { addRoles, selectRoles } from "../../features/settingSlice";
 import { addUsers } from "../../features/userSlice";
+import toast, { Toaster } from 'react-hot-toast';
 
 const style = {
   position: "absolute",
@@ -19,9 +23,10 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 700,
   bgcolor: "background.paper",
-  boxShadow: 24,
+  // boxShadow: 24,
   p: 4,
 };
+
 
 const AddUser = () => {
   const [open, setOpen] = useState(false);
@@ -34,6 +39,8 @@ const AddUser = () => {
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
+
+  const functions = getFunctions();
 
   useEffect(() => {
     const getRoles = async () => {
@@ -84,77 +91,41 @@ const AddUser = () => {
     e.preventDefault();
 
     if (!fullName) {
-      message.warning("Please enter full name");
+      toast.warning("Please enter full name");
     } else if (!email) {
-      message.warning("Please enter email");
+      toast.warning("Please enter email");
     } else if (!role) {
-      message.warning("Please select role");
+      toast.warning("Please select role");
     } else {
       //start registration
       setLoading(true);
-      auth
-        .createUser({
-          email,
-          emailVerified: true,
-          password: 'msa@1234',
-          disabled: false,
-        })
-        .then((userRecord) => {
-          //
-          addUserToBucket(userRecord.id);
+
+      const created_at = Timestamp.fromDate(new Date());
+
+      //create user
+      const addUser = httpsCallable(functions, "createNewUser");
+      addUser({ email, role: role?.label, roleID: role?.id, fullName, created_at})
+        .then((result) => {
+          // Read result of the Cloud Function.
+          const data = result.data;
+          setLoading(false);
+          setName("");
+          setEmail("");
+          setRole("");
+
+          toast.success(data.message);
+          //fetch users
+          getUsers();
         })
         .catch((error) => {
+          // Getting the Error details.
+          const code = error.code;
+          const message = error.message;
+          const details = error.details;
           setLoading(false);
-          console.log("Error creating new user:", error);
+          toast.error(message);
         });
     }
-  };
-
-  const addUserToBucket = async (id) => {
-    // Add a new document with a generated id
-    await setDoc(doc(db, "userBucket", id), {
-      fullName,
-      email,
-      role: role?.label,
-      roleID: role?.id,
-      userID: id,
-      status: true,
-      created_at: Timestamp.fromDate(new Date()),
-    })
-      .then(() => {
-        addUserToPath(id);
-      })
-      .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        message.error(error.message);
-        setLoading(false);
-      });
-  };
-
-  const addUserToPath = async (id) => {
-    // Add a new document with a generated id
-    await setDoc(doc(db, "users", "admins", id, "public"), {
-      fullName,
-      email,
-      role: role?.label,
-      roleID: role?.id,
-      userID: id,
-      status: true,
-      created_at: Timestamp.fromDate(new Date()),
-    })
-      .then(() => {
-        setName("");
-        setEmail("");
-        setRole("");
-        getUsers();
-        message.success("User is saved successfully");
-        setLoading(false);
-      })
-      .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        message.error(error.message);
-        setLoading(false);
-      });
   };
 
   const renderButton = () => {

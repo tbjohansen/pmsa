@@ -7,8 +7,8 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button, IconButton } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { message } from "antd";
 import { addAssetTypes } from "../../features/settingSlice";
+import { toast } from "react-hot-toast";
 
 const style = {
   position: "absolute",
@@ -51,7 +51,7 @@ const EditAssetType = ({ assetType }) => {
     e.preventDefault();
 
     if (!typeName) {
-      message.warning("Please enter type name");
+      toast.warning("Please enter type name");
     } else {
       //start registration
       setLoading(true);
@@ -64,17 +64,17 @@ const EditAssetType = ({ assetType }) => {
           description,
         })
           .then(() => {
-            message.success("Asset type is updated successfully");
+            toast.success("Asset type is updated successfully");
             getAssetTypes();
             setLoading(false);
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
-            message.error(error.message);
+            toast.error(error.message);
             setLoading(false);
           });
       } catch (error) {
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       }
     }

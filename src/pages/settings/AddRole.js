@@ -13,8 +13,8 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { message } from "antd";
 import { addRoles } from "../../features/settingSlice";
+import { toast } from "react-hot-toast";
 
 const style = {
   position: "absolute",
@@ -57,8 +57,7 @@ const AddRole = () => {
     e.preventDefault();
 
     if (!name) {
-      message.warning("Please enter role name");
-      console.log("name is empty");
+      toast.warning("Please enter role name");
     } else {
       //start registration
       setLoading(true);
@@ -75,16 +74,16 @@ const AddRole = () => {
             setName("");
             setDescription("");
             getRoles();
-            message.success("User role is saved successfully");
+            toast.success("User role is saved successfully");
             setLoading(false);
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
-            message.error(error.message);
+            toast.error(error.message);
             setLoading(false);
           });
       } catch (error) {
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       }
     }

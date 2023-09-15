@@ -2,11 +2,12 @@ import React, { useEffect } from "react";
 import { db } from "../../App";
 import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, message, Popconfirm, Table } from "antd";
+import { Button, Popconfirm, Table } from "antd";
 import Delete from "@mui/icons-material/Delete";
 import { addAssetTypes, selectAssetTypes } from "../../features/settingSlice";
 import AddAssetType from "./AddAssetType";
 import EditAssetType from "./EditAssetType";
+import { toast } from "react-hot-toast";
 
 const columns = [
   {
@@ -63,16 +64,16 @@ const DeleteAssetType = ({ assetType }) => {
 
       await deleteDoc(dataRef)
         .then(() => {
-          message.success("Asset type is deleted successful");
+          toast.success("Asset type is deleted successful");
           getAssetTypes();
         })
         .catch((error) => {
           // console.error("Error removing document: ", error.message);
-          message.error(error.message);
+          toast.error(error.message);
         });
     } catch (error) {
       // console.log(error);
-      message.error(error.message);
+      toast.error(error.message);
     }
   };
 

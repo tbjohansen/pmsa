@@ -15,11 +15,6 @@ const admin = require("firebase-admin");
 
 const serviceAccount = require("./env/hrmsmsa-196c7-a96bad1f2b96.json");
 
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount),
-//   databaseURL: "https://hrmsmsa-196c7-default-rtdb.firebaseio.com"
-// });
-
 initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://hrmsmsa-196c7-default-rtdb.firebaseio.com",
@@ -29,5 +24,7 @@ initializeApp({
 // const auth = getAuth();
 
 const createUser = require("./createUser");
+const createNewUser = require("./createNewUser");
 
 exports.createUser = createUser.createUser;
+exports.createNewUser = createNewUser.createNewUser;

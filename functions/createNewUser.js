@@ -1,17 +1,17 @@
 const { getAuth } = require("firebase-admin/auth");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onCall } = require("firebase-functions/v2/https");
 const { getFirestore } = require("firebase-admin/firestore");
 
-exports.createUser = onRequest(
+exports.createNewUser = onCall(
   //   { timeoutSeconds: 30, cors: true, maxInstances: 10 },
-  {cors: false},
-  async (req, res) => {
+  {cors: ["https://hrmsa.vercel.app"]},
+  async(request) => {
     //initilize values
-    const email = req.email;
-    const name = req.fullName;
-    const role = req.role;
-    const roleID = req.roleID;
-    const created_at = req.created_at;
+    const email = request.data.email;
+    const name = request.data.fullName;
+    const role = request.data.role;
+    const roleID = request.data.roleID;
+    const created_at = request.data.created_at;
 
     let successArray = [];
 
@@ -40,7 +40,7 @@ exports.createUser = onRequest(
     }
 
     return Promise.all(successArray).then(() => {
-      return res.sendStatus(200);
+      return {status: 200, message: "User is created successfully"};
     });
   }
 );

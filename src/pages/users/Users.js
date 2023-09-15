@@ -2,9 +2,10 @@ import React, { useEffect } from "react";
 import { db } from "../../App";
 import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { message, Popconfirm, Switch, Table } from "antd";
+import { Popconfirm, Switch, Table } from "antd";
 import { addUsers, selectUsers } from "../../features/userSlice";
 import AddUser from "./AddUser";
+import toast, { Toaster } from 'react-hot-toast';
 
 const columns = [
   {
@@ -31,7 +32,6 @@ const columns = [
   },
   {
     title: "Status",
-    dataIndex: "status",
     key: "status",
     render: (_, user) => (
       <>
@@ -78,7 +78,7 @@ const UserStatus = ({ user }) => {
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
-        message.error(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -89,11 +89,11 @@ const UserStatus = ({ user }) => {
     })
       .then(() => {
         getUsers();
-        message.success("User status is changed successfully");
+        toast.success("User status is changed successfully");
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
-        message.error(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -109,7 +109,7 @@ const UserStatus = ({ user }) => {
     >
       <Switch
         checked={user?.status}
-        className={user?.status ? null : `bg-[#F24E1E] rounded-full`}
+        className={user?.status ? null : `bg-zinc-300 rounded-full`}
       />
     </Popconfirm>
   );

@@ -2,20 +2,20 @@ import React, { useEffect, useState } from "react";
 import { db } from "../../App";
 import {
   collection,
+  setDoc,
   doc,
   getDocs,
   Timestamp,
-  updateDoc,
 } from "firebase/firestore";
 import Box from "@mui/material/Box";
+import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { Autocomplete, Button, IconButton } from "@mui/material";
+import { Autocomplete, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { addAssetTypes, selectAssetTypes } from "../../features/settingSlice";
-import { addAssets } from "../../features/assetSlice";
-import { Edit } from "@mui/icons-material";
+import { addAssets, selectAssets } from "../../features/assetSlice";
+import { addEmployeesAssets } from "../../features/employeeSlice";
 
 const style = {
   position: "absolute",
@@ -28,50 +28,49 @@ const style = {
   p: 4,
 };
 
-const EditAsset = ({asset}) => {
+const AddEmployeeAsset = () => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [assetType, setAssetType] = useState({id: asset?.typeID, label: asset?.typeName});
-  const [assetName, setAssetName] = useState(asset?.name);
-  const [assetNumber, setAssetNumber] = useState(asset?.assetNumber);
-  const [assetAmount, setAssetAmount] = useState(asset?.cost);
-  const [description, setDescription] = useState(asset?.description);
+  const [asset, setAsset] = useState("");
+  const [date, setDate] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const getTypes = async () => {
-      let typesArray = [];
+    const getAssets = async () => {
+      let assetsArray = [];
 
-      const querySnapshot = await getDocs(collection(db, "assetTypes"));
+      const querySnapshot = await getDocs(collection(db, "assetsBucket"));
       querySnapshot.forEach((doc) => {
         //set data
         const data = doc.data();
-        typesArray.push(data);
+        assetsArray.push(data);
       });
 
-      if (typesArray.length > 0) {
-        dispatch(addAssetTypes(typesArray));
+      if (assetsArray.length > 0) {
+        dispatch(addAssets(assetsArray));
       }
     };
 
-    getTypes();
+    getAssets();
   }, [dispatch]);
 
-  const types = useSelector(selectAssetTypes);
-  const sortedTypes = types.map((assetType) => ({
-    id: assetType.id,
-    label: assetType.typeName,
+  const assets = useSelector(selectAssets);
+  const sortedAssets = assets.map((asset) => ({
+    id: asset.id,
+    label: asset.typeName,
   }));
 
-  const assetTypeOnChange = (e, value) => {
-    setAssetType(value);
+  const assetOnChange = (e, value) => {
+    setAsset(value);
   };
 
-  const getAssets = async () => {
+  const getEmployeeAssets = async () => {
     let assetsArray = [];
 
     const querySnapshot = await getDocs(collection(db, "assetsBucket"));
@@ -82,7 +81,7 @@ const EditAsset = ({asset}) => {
     });
 
     if (assetsArray.length > 0) {
-      dispatch(addAssets(assetsArray));
+      dispatch(addEmployeesAssets(assetsArray));
     }
   };
 
@@ -102,19 +101,25 @@ const EditAsset = ({asset}) => {
       setLoading(true);
       try {
         // Add a new document with a generated id
-        const dataRef = doc(db, "assetsBucket", asset?.id);
-        await updateDoc(dataRef, {
+        const dataRef = doc(collection(db, "assetsBucket"));
+        await setDoc(dataRef, {
           typeName: assetType?.label,
           typeID: assetType?.id,
           name: assetName,
           cost: assetAmount,
           assetNumber,
           description,
+          id: dataRef.id,
+          assigned: false,
+          active: true,
+          status: "available",
+          created_at: Timestamp.fromDate(new Date()),
           updated_at: Timestamp.fromDate(new Date()),
         })
           .then(() => {
-            getAssets();
-            toast.success("Asset is updated successfully");
+            setDescription("");
+            getEmployeeAssets();
+            toast.success("Asset is assigned successfully");
             setLoading(false);
           })
           .catch((error) => {
@@ -156,7 +161,7 @@ const EditAsset = ({asset}) => {
             className="w-[100%]"
             onClick={(e) => assetRegistration(e)}
           >
-            EDIT ASSET
+            ASSIGN ASSET
           </Button>
         </>
       );
@@ -165,9 +170,12 @@ const EditAsset = ({asset}) => {
 
   return (
     <div>
-      <IconButton onClick={handleOpen} className="flex justify-center">
-        <Edit className="text-red-500 text-xl cursor-pointer" />
-      </IconButton>
+      <div
+        onClick={handleOpen}
+        className="h-10 w-44 bg-blue-300 cursor-pointer rounded-full flex flex-row gap-1 justify-center text-white"
+      >
+        <Add className="mt-2 py-0.5" /> <p className="py-2">Assign Asset</p>
+      </div>
 
       <Modal
         open={open}
@@ -177,28 +185,19 @@ const EditAsset = ({asset}) => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Edit Asset Details</h3>
+            <h3 className="text-center text-xl py-4">Assign Asset To Employee</h3>
             <div>
-              <div className="w-full py-2 flex flex-row gap-2 justify-center">
+              <div className="w-full py-2 flex justify-center">
                 <Autocomplete
                   id="combo-box-demo"
-                  options={sortedTypes}
+                  options={sortedAssets}
                   size="small"
-                  className="w-[82%]"
-                  value={assetType}
-                  onChange={assetTypeOnChange}
+                  className="w-[100%]"
+                  value={asset}
+                  onChange={assetOnChange}
                   renderInput={(params) => (
-                    <TextField {...params} label="Select asset type" />
+                    <TextField {...params} label="Select asset" />
                   )}
-                />
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Asset Name"
-                  variant="outlined"
-                  className="w-[82%]"
-                  value={assetName}
-                  onChange={(e) => setAssetName(e.target.value)}
                 />
               </div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
@@ -208,8 +207,8 @@ const EditAsset = ({asset}) => {
                   label="Asset Number"
                   variant="outlined"
                   className="w-[82%]"
-                  value={assetNumber}
-                  onChange={(e) => setAssetNumber(e.target.value)}
+                //   value={assetNumber}
+                //   onChange={(e) => setAssetNumber(e.target.value)}
                 />
                 <TextField
                   size="small"
@@ -217,9 +216,9 @@ const EditAsset = ({asset}) => {
                   label="Asset Cost"
                   variant="outlined"
                   className="w-[82%]"
-                  value={assetAmount}
-                  type={"number"}
-                  onChange={(e) => setAssetAmount(e.target.value)}
+                //   value={assetAmount}
+                //   type={"number"}
+                //   onChange={(e) => setAssetAmount(e.target.value)}
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
@@ -245,4 +244,4 @@ const EditAsset = ({asset}) => {
   );
 };
 
-export default EditAsset;
+export default AddEmployeeAsset;

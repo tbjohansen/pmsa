@@ -1,51 +1,50 @@
 const { getAuth } = require("firebase-admin/auth");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onCall } = require("firebase-functions/v2/https");
 const { getFirestore } = require("firebase-admin/firestore");
 
-exports.createUser = onRequest(
+exports.updateUser = onCall(
   //   { timeoutSeconds: 30, cors: true, maxInstances: 10 },
-  {cors: false},
-  async (req, res) => {
+  {cors: ["https://hrmsa.vercel.app"]},
+  async(request) => {
     //initilize values
-    const email = req.email;
-    const name = req.fullName;
-    const role = req.role;
-    const roleID = req.roleID;
-    const created_at = req.created_at;
+    const uid = request.data.userID;
+    const email = request.data.email;
+    const name = request.data.fullName;
+    const role = request.data.role;
+    const roleID = request.data.roleID;
+    const updated_at = request.data.updated_at;
 
     let successArray = [];
 
     try {
-      const user = await getAuth().createUser({
+      const user = await getAuth().updateUser(uid, {
         email: email,
         emailVerified: true,
-        password: "msa@1234",
-        disabled: false,
       });
 
       successArray.push(user);
 
-      const res = createUserDatabase({
+      const res = updateUserDatabase({
         user,
         name,
         email,
         role,
         roleID,
-        created_at,
+        updated_at,
       });
       successArray.push(res);
     } catch (error) {
-      console.log("Error creating new user:", error);
+      console.log("Error updating user:", error);
       successArray.push(null);
     }
 
     return Promise.all(successArray).then(() => {
-      return res.sendStatus(200);
+      return {status: 200, message: "User is updated successfully"};
     });
   }
 );
 
-async function createUserDatabase({
+async function updateUserDatabase({
   user,
   name,
   email,

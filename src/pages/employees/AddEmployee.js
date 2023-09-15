@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAuth } from "firebase/auth";
-import { auth, db } from "../../App";
+import { db } from "../../App";
 import {
   collection,
   getDocs,
@@ -14,15 +13,12 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Autocomplete, Button, MenuItem } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { message } from "antd";
 import {
   addDesignations,
-  addRoles,
   selectDesignations,
-  selectRoles,
 } from "../../features/settingSlice";
-import { addUsers } from "../../features/userSlice";
 import { addEmployees } from "../../features/employeeSlice";
+import toast, { Toaster } from 'react-hot-toast';
 
 const style = {
   position: "absolute",
@@ -100,19 +96,21 @@ const AddEmployee = () => {
     e.preventDefault();
 
     if (!firstName) {
-      message.warning("Please enter first name");
+      toast.warning("Please enter first name");
     } else if (!lastName) {
-      message.warning("Please enter last name");
+      toast.warning("Please enter last name");
     } else if (!gender) {
-      message.warning("Please select gender");
+      toast.warning("Please select gender");
     } else if (!phone) {
-      message.warning("Please enter phone number");
+      toast.warning("Please enter phone number");
     } else if (!desgnations) {
-      message.warning("Please select designation");
+      toast.warning("Please select designation");
     } else {
       //start registration
       setLoading(true);
-      await setDoc(doc(db, "employeesBucket", "id"), {
+
+      const dataRef = doc(collection(db, "employeesBucket"));
+      await setDoc(dataRef, {
         firstName,
         middleName,
         lastName,
@@ -121,24 +119,27 @@ const AddEmployee = () => {
         phone,
         designation: designation?.label,
         designationID: designation?.id,
-        employeeID: "id",
+        id: dataRef.id,
         status: true,
         created_at: Timestamp.fromDate(new Date()),
+        updated_at: Timestamp.fromDate(new Date()),
       })
-        .then((employee) => {
+        .then(() => {
           //
-          addEmployeeToPath(employee.id);
+          addEmployeeToPath(dataRef.id);
         })
         .catch((error) => {
           setLoading(false);
           console.log("Error creating new employee:", error);
+          toast.error(error.message);
         });
     }
   };
 
   const addEmployeeToPath = async (id) => {
-    // Add a new document with a generated id
-    await setDoc(doc(db, "users", "employees", id, "public"), {
+    //
+    const dataRef = doc(db, "users", "employees", id, "public", "account", "info");
+    await setDoc(dataRef, {
         firstName,
         middleName,
         lastName,
@@ -147,9 +148,10 @@ const AddEmployee = () => {
         phone,
         designation: designation?.label,
         designationID: designation?.id,
-        employeeID: id,
+        id: id,
         status: true,
         created_at: Timestamp.fromDate(new Date()),
+        updated_at: Timestamp.fromDate(new Date()),
     })
       .then(() => {
         setFirstName("");
@@ -160,12 +162,12 @@ const AddEmployee = () => {
         setEmail("");
         setDesignation("");
         getEmployees();
-        message.success("Employee is saved successfully");
+        toast.success("Employee is saved successfully");
         setLoading(false);
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       });
   };
@@ -177,7 +179,7 @@ const AddEmployee = () => {
           <Button
             size="large"
             variant="contained"
-            className="w-[82%] cursor-not-allowed"
+            className="w-[100%] cursor-not-allowed"
             disabled
           >
             <svg
@@ -194,7 +196,7 @@ const AddEmployee = () => {
           <Button
             size="large"
             variant="contained"
-            className="w-[82%]"
+            className="w-[100%]"
             onClick={(e) => employeeRegistration(e)}
           >
             SAVE EMPLOYEE
@@ -210,7 +212,7 @@ const AddEmployee = () => {
         onClick={handleOpen}
         className="h-10 w-44 bg-blue-300 cursor-pointer rounded-full flex flex-row gap-1 justify-center text-white"
       >
-        <Add className="mt-2 py-0.5" /> <p className="py-2">Add New Employee</p>
+        <Add className="mt-2 py-0.5" /> <p className="py-2">Add Employee</p>
       </div>
 
       <Modal
@@ -258,7 +260,7 @@ const AddEmployee = () => {
                   label="Email"
                   size="small"
                   variant="outlined"
-                  className="w-[40%]"
+                  className="w-[82%]"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -268,7 +270,7 @@ const AddEmployee = () => {
                   size="small"
                   type="number"
                   variant="outlined"
-                  className="w-[40%]"
+                  className="w-[82%]"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
@@ -279,7 +281,7 @@ const AddEmployee = () => {
                   id="outlined-select-currency"
                   select
                   label="Gender"
-                  className="w-[40%]"
+                  className="w-[82%]"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                 >
@@ -290,7 +292,7 @@ const AddEmployee = () => {
                   id="combo-box-demo"
                   options={sortedDesignation}
                   size="small"
-                  className="w-[40%]"
+                  className="w-[82%]"
                   value={designation}
                   onChange={designationOnChange}
                   renderInput={(params) => (

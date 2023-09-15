@@ -9,6 +9,7 @@ import { Button, IconButton } from "@mui/material";
 import { useDispatch } from "react-redux";
 import { message } from "antd";
 import { addDesignations } from "../../features/settingSlice";
+import { toast } from "react-hot-toast";
 
 const style = {
   position: "absolute",
@@ -51,7 +52,7 @@ const EditDesignation = ({ designation }) => {
     e.preventDefault();
 
     if (!name) {
-      message.warning("Please enter designation name");
+      toast.warning("Please enter designation name");
     } else {
       //start registration
       setLoading(true);
@@ -64,17 +65,17 @@ const EditDesignation = ({ designation }) => {
           description,
         })
           .then(() => {
-            message.success("Designation is updated successfully");
+            toast.success("Designation is updated successfully");
             getDesignations();
             setLoading(false);
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
-            message.error(error.message);
+            toast.error(error.message);
             setLoading(false);
           });
       } catch (error) {
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       }
     }

@@ -13,7 +13,7 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { message } from "antd";
+import toast, { Toaster } from 'react-hot-toast';
 import { addAssetTypes } from "../../features/settingSlice";
 
 const style = {
@@ -57,8 +57,7 @@ const AddAssetType = () => {
     e.preventDefault();
 
     if (!typeName) {
-      message.warning("Please enter type name");
-      console.log("name is empty");
+      toast.warning("Please enter type name");
     } else {
       //start registration
       setLoading(true);
@@ -75,16 +74,16 @@ const AddAssetType = () => {
             setName("");
             setDescription("");
             getTypes();
-            message.success("Asset type is saved successfully");
+            toast.success("Asset type is saved successfully");
             setLoading(false);
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
-            message.error(error.message);
+            toast.error(error.message);
             setLoading(false);
           });
       } catch (error) {
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       }
     }

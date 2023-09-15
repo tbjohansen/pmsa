@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { message } from "antd";
 import bgImg from "../../assets/images/bgImage.svg";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const auth = getAuth();
 
@@ -20,13 +23,11 @@ const Login = () => {
       setLoading(true);
 
       signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
+        .then(() => {
           // Signed in
           message.success("Logged in");
           setLoading(false);
-          const user = userCredential.user;
-          console.log(user);
-          // ...
+          navigate(`/`);
         })
         .catch((error) => {
           setLoading(false);

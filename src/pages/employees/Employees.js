@@ -2,9 +2,18 @@ import React, { useEffect } from "react";
 import { db } from "../../App";
 import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { message, Popconfirm, Switch, Table } from "antd";
-import { addEmployees, selectEmployees } from "../../features/employeeSlice";
+import { Popconfirm, Switch, Table } from "antd";
+import {
+  addEmployees,
+  addEmployeesDetails,
+  selectEmployees,
+} from "../../features/employeeSlice";
 import AddEmployee from "./AddEmployee";
+import toast from "react-hot-toast";
+import EditEmployee from "./EditEmployee";
+import { RemoveRedEye } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
+import { IconButton } from "@mui/material";
 
 const columns = [
   {
@@ -18,7 +27,9 @@ const columns = [
     key: "fullName",
     render: (_, employee) => (
       <>
-        <p>{employee?.firstName} {employee?.middleName} {employee?.lasName}</p>
+        <p>
+          {employee?.firstName} {employee?.middleName} {employee?.lastName}
+        </p>
       </>
     ),
   },
@@ -36,6 +47,7 @@ const columns = [
     title: "Gender",
     dataIndex: "gender",
     key: "gender",
+    render: (text) => <p className="capitalize">{text}</p>,
   },
   {
     title: "Designation",
@@ -57,12 +69,30 @@ const columns = [
     key: "action",
     render: (_, employee) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditUser user={user} /> */}
-        {/* <DeleteUser user={user} /> */}
+        <EditEmployee employee={employee} />
+        <ViewEmployee employee={employee} />
       </p>
     ),
   },
 ];
+
+const ViewEmployee = ({ employee }) => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleViewEmployee = () => {
+    dispatch(addEmployeesDetails(employee));
+    navigate(`/employees/${employee?.id}`);
+  };
+
+  return (
+    <p className="mt-1">
+      <IconButton onClick={() => handleViewEmployee()}>
+        <RemoveRedEye className="text-red-500 text-xl cursor-pointer" />
+      </IconButton>
+    </p>
+  );
+};
 
 const EmployeeStatus = ({ employee }) => {
   const dispatch = useDispatch();
@@ -91,22 +121,25 @@ const EmployeeStatus = ({ employee }) => {
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
-        message.error(error.message);
+        toast.error(error.message);
       });
   };
 
   const updateEmployeeToPath = async (id) => {
     // Add a new document with a generated id
-    await updateDoc(doc(db, "users", "employees", id, "public"), {
-      status: !employee.status,
-    })
+    await updateDoc(
+      doc(db, "users", "employees", id, "public", "account", "info"),
+      {
+        status: !employee.status,
+      }
+    )
       .then(() => {
         getEmployees();
-        message.success("Employee status is changed successfully");
+        toast.success("Employee status is changed successfully");
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
-        message.error(error.message);
+        toast.error(error.message);
       });
   };
 
@@ -134,14 +167,14 @@ const Employees = () => {
   useEffect(() => {
     const getEmployees = async () => {
       let employeesArray = [];
-  
+
       const querySnapshot = await getDocs(collection(db, "employeesBucket"));
       querySnapshot.forEach((doc) => {
         //set data
         const data = doc.data();
         employeesArray.push(data);
       });
-  
+
       if (employeesArray.length > 0) {
         dispatch(addEmployees(employeesArray));
       }
@@ -152,7 +185,9 @@ const Employees = () => {
 
   const employees = useSelector(selectEmployees);
 
-  const employeesList = employees.slice().sort((a, b) => b.created_at - a.created_at);
+  const employeesList = employees
+    .slice()
+    .sort((a, b) => b.created_at - a.created_at);
   const sortedEmployees = employeesList.map((employee, index) => {
     const key = index + 1;
     return { ...employee, key };
@@ -161,7 +196,7 @@ const Employees = () => {
   return (
     <div className="px-2">
       <div className="flex flex-row justify-end">
-        <AddEmployee/>
+        <AddEmployee />
       </div>
       <div className="pt-8">
         <Table

@@ -13,8 +13,8 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { message } from "antd";
 import { addDesignations } from "../../features/settingSlice";
+import toast, { Toaster } from 'react-hot-toast';
 
 const style = {
   position: "absolute",
@@ -57,8 +57,7 @@ const AddDesignation = () => {
     e.preventDefault();
 
     if (!name) {
-      message.warning("Please enter deisgnation name");
-      console.log("name is empty");
+      toast.warning("Please enter deisgnation name");
     } else {
       //start registration
       setLoading(true);
@@ -75,16 +74,16 @@ const AddDesignation = () => {
             setName("");
             setDescription("");
             getDesignations();
-            message.success("Designation is saved successfully");
+            toast.success("Designation is saved successfully");
             setLoading(false);
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
-            message.error(error.message);
+            toast.error(error.message);
             setLoading(false);
           });
       } catch (error) {
-        message.error(error.message);
+        toast.error(error.message);
         setLoading(false);
       }
     }

@@ -2,11 +2,12 @@ import React, { useEffect } from "react";
 import { db } from "../../App";
 import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Button, message, Popconfirm, Table } from "antd";
+import { Button, Popconfirm, Table } from "antd";
 import Delete from "@mui/icons-material/Delete";
 import { addRoles, selectRoles } from "../../features/settingSlice";
 import AddRole from "./AddRole";
 import EditRole from "./EditRole";
+import { toast } from "react-hot-toast";
 
 const columns = [
   {
@@ -63,16 +64,16 @@ const DeleteRole = ({ role }) => {
 
       await deleteDoc(dataRef)
         .then(() => {
-          message.success("Role is deleted successful");
+          toast.success("Role is deleted successful");
           getRoles();
         })
         .catch((error) => {
           // console.error("Error removing document: ", error.message);
-          message.error(error.message);
+          toast.error(error.message);
         });
     } catch (error) {
       // console.log(error);
-      message.error(error.message);
+      toast.error(error.message);
     }
   };
 
