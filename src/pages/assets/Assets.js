@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { IconButton } from "@mui/material";
 import { RemoveRedEye } from "@mui/icons-material";
 
+const formatter = new Intl.NumberFormat("en-US");
+
 const columns = [
   {
     title: "#",
@@ -39,7 +41,7 @@ const columns = [
     title: "Costs",
     dataIndex: "cost",
     key: "cost",
-    render: (text) => <p>{text}</p>,
+    render: (text) => <p>TZS {formatter.format(text)}</p>,
   },
   {
     title: "Active",
@@ -114,11 +116,11 @@ const AssetStatus = ({ asset }) => {
 
   const changeStatus = async () => {
     await updateDoc(doc(db, "assetsBucket", asset?.id), {
-      status: !asset.status,
+      status: !asset.active,
     })
       .then(() => {
         toast.success(
-          `Asset is ${asset?.status ? "deactivated" : "activated"} successfully`
+          `Asset is ${asset?.active ? "deactivated" : "activated"} successfully`
         );
         getAssets();
       })
@@ -132,15 +134,15 @@ const AssetStatus = ({ asset }) => {
     <Popconfirm
       title="Change Status"
       description={`Are you sure you want to ${
-        asset?.status ? "deactivate" : "activate"
+        asset?.active ? "deactivate" : "activate"
       } this asset?`}
       okText="Yes"
       cancelText="No"
       onConfirm={changeStatus}
     >
       <Switch
-        checked={asset?.status}
-        className={asset?.status ? null : `bg-zinc-300 rounded-full`}
+        checked={asset?.active}
+        className={asset?.active ? null : `bg-zinc-300 rounded-full`}
       />
     </Popconfirm>
   );

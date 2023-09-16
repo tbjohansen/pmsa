@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, getDocs,} from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import {  Modal, Table } from "antd";
-import {
-  addEmployeesAssets,
-  selectEmployeeAssets,
-} from "../../features/employeeSlice";
-import toast from "react-hot-toast";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import { IconButton } from "@mui/material";
+import { addAssetHistory, selectAssetHistory } from "../../features/assetSlice";
 
 const columns = [
   {
@@ -38,15 +34,21 @@ const columns = [
     render: (text) => <p className="">{text}</p>,
   },
   {
+    title: "Assignor",
+    dataIndex: "assignor",
+    key: "assignor",
+    render: (text) => <p className="">{text}</p>,
+  },
+  {
     title: "Assigned Date",
     dataIndex: "assignedDate",
     key: "assignedDate",
     render: (text) => <p className="">{text}</p>,
   },
   {
-    title: "Assignor",
-    dataIndex: "assignor",
-    key: "assignor",
+    title: "Assignee",
+    dataIndex: "assignee",
+    key: "assignee",
     render: (text) => <p className="">{text}</p>,
   },
   {
@@ -60,7 +62,6 @@ const columns = [
     key: "action",
     render: (_, asset) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditEmployee employee={employee} /> */}
         <ViewAsset asset={asset} />
       </p>
     ),
@@ -99,7 +100,7 @@ const ViewAsset = ({ asset }) => {
           width={600}
         >
           <h4 className="text-lg font-semibold text-center pb-2">
-            Asset Description
+            Description
           </h4>
           <div className="text-sm py-1">
             <p>{asset?.description}</p>
@@ -110,30 +111,32 @@ const ViewAsset = ({ asset }) => {
 };
 
 
-const EmployeeAssets = () => {
+const AssetHistory = () => {
   const dispatch = useDispatch();
-  const {employeeID} = useParams();
+  const {assetID} = useParams();
 
   useEffect(() => {
-    const getEmployeeAssets = async () => {
-      let assetsArray = [];
+    const getAssetHistory = async () => {
+        let assetArray = [];
+  
+        const querySnapshot = await getDocs(
+          collection(db, "assets", assetID, "assignments")
+        );
+        querySnapshot.forEach((doc) => {
+          //set data
+          const data = doc.data();
+          assetArray.push(data);
+        });
+  
+        if (assetArray.length > 0) {
+          dispatch(addAssetHistory(assetArray));
+        }
+      };
 
-      const querySnapshot = await getDocs(collection(db, "users", "employees", employeeID, "public", "assets"));
-      querySnapshot.forEach((doc) => {
-        //set data
-        const data = doc.data();
-        assetsArray.push(data);
-      });
-
-      if (assetsArray.length > 0) {
-        dispatch(addEmployeesAssets(assetsArray));
-      }
-    };
-
-    getEmployeeAssets();
+      getAssetHistory();
   }, [dispatch]);
 
-  const assets = useSelector(selectEmployeeAssets);
+  const assets = useSelector(selectAssetHistory);
 
   const assetList = assets
     .slice()
@@ -157,4 +160,4 @@ const EmployeeAssets = () => {
   );
 };
 
-export default EmployeeAssets;
+export default AssetHistory;

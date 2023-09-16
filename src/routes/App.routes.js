@@ -97,7 +97,7 @@ const App = () => {
           <Route path="/payroll" element={<PayrollElement />} />
 
           <Route path="/employees/:employeeID" element={<EmployeeElement />} />
-          <Route path="/asset/:assetID" element={<AssetElement />} />
+          <Route path="/assets/:assetID" element={<AssetElement />} />
         </Route>
       </Routes>
     </React.Fragment>

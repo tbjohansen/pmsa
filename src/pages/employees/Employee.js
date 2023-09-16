@@ -19,6 +19,7 @@ import { Tag } from "antd";
 import AddEmergencyContacts from "./AddEmergencyContact";
 import AddAdditionalInfo from "./AddAdditionalInfo";
 import EmployeeAssets from "./EmployeeAssets";
+import EmployeeLoans from "./EmployeeLoans";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -243,7 +244,9 @@ const Employee = () => {
           <ProfileInfo />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={1}></CustomTabPanel>
-        <CustomTabPanel value={value} index={2}></CustomTabPanel>
+        <CustomTabPanel value={value} index={2}>
+          <EmployeeLoans/>
+        </CustomTabPanel>
         <CustomTabPanel value={value} index={3}>
           <EmployeeAssets />
         </CustomTabPanel>
