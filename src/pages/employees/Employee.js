@@ -17,9 +17,12 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../App";
 import { Tag } from "antd";
 import AddEmergencyContacts from "./AddEmergencyContact";
-import AddAdditionalInfo from "./AddAdditionalInfo";
 import EmployeeAssets from "./EmployeeAssets";
 import EmployeeLoans from "./EmployeeLoans";
+import EmployeeSalary from "./EmployeeSalary";
+import AddPrimaryEmergencyContacts from "./AddPrimaryEmergencyContact";
+import EditPrimaryEmergencyContacts from "./EditPrimaryEmergencyContact";
+import EditEmergencyContacts from "./EditEmergencyContact";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -54,97 +57,71 @@ function a11yProps(index) {
   };
 }
 
-const ProfileInfo = () => {
-  const dispatch = useDispatch();
-  const { employeeID } = useParams();
-
-  useEffect(() => {
-    const getEmployeeDetails = async () => {
-      const docRef = doc(
-        db,
-        "users",
-        "employees",
-        employeeID,
-        "public",
-        "account",
-        "additionalInfo"
-      );
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        dispatch(addAdditionalInfo(data));
-      } else {
-        // docSnap.data() will be undefined in this case
-        console.log("No such document!");
-      }
-    };
-
-    getEmployeeDetails();
-  }, [dispatch]);
-
-  const info = useSelector(selectAdditionalInfo);
-
+const ProfileInfo = ({ info }) => {
   return (
     <div className="w-[100%]">
       <div className="flex flex-row justify-between">
         <Card sx={{ width: 500, bgcolor: "#fcf8f8" }}>
           <div className="flex flex-row justify-between">
             <h4 className="w-[92%] text-center font-semibold py-4">
-              Additional Info
+              Emergency Contacts (1)
             </h4>
             <div className="w-[8%] py-2">
-              <AddAdditionalInfo />
+              {info?.contactName ? (
+                <EditPrimaryEmergencyContacts info={info} />
+              ) : (
+                <AddPrimaryEmergencyContacts />
+              )}
             </div>
           </div>
-          <div className="px-4">
+          <div className="px-4 pb-2">
             <div className="flex flex-row gap-2 py-2">
-              <p className="w-[50%]">Passport Number</p>
-              <p className="w-[50%]">76823912</p>
+              <p className="w-[50%]">Name</p>
+              <p className="w-[50%]">{info?.contactName}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
-              <p className="w-[50%]">Bank Name</p>
-              <p className="w-[50%]">Access Bank</p>
+              <p className="w-[50%]">Relation</p>
+              <p className="w-[50%] capitalize">{info?.relation}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
-              <p className="w-[50%]">Account Number</p>
-              <p className="w-[50%]">5810000032</p>
+              <p className="w-[50%]">Phone</p>
+              <p className="w-[50%]">{info?.phone}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
-              <p className="w-[50%]">SSN</p>
-              <p className="w-[50%]">45600002</p>
-            </div>
-            <div className="flex flex-row gap-2 py-2">
-              <p className="w-[50%]">Marital Status</p>
-              <p className="w-[50%]">Married</p>
+              <p className="w-[50%]">Address</p>
+              <p className="w-[50%]">{info?.address}</p>
             </div>
           </div>
         </Card>
         <Card sx={{ width: 500, bgcolor: "#fcf8f8" }}>
           <div className="flex flex-row justify-between">
             <h4 className="w-[92%] text-center font-semibold py-4">
-              Emergency Contacts
+              Emergency Contacts (2)
             </h4>
             <div className="w-[8%] py-2">
-              <AddEmergencyContacts />
+              {info?.contactName2 ? (
+                <EditEmergencyContacts info={info} />
+              ) : (
+                <AddEmergencyContacts />
+              )}
             </div>
           </div>
-          <div className="px-4">
+          <div className="px-4 pb-2">
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Name</p>
-              <p className="w-[50%]">Taylen Byarugaba</p>
+              <p className="w-[50%]">{info?.contactName2}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Relation</p>
-              <p className="w-[50%]">Father</p>
+              <p className="w-[50%] capitalize">{info?.relation2}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Phone</p>
-              <p className="w-[50%]">0700898989</p>
+              <p className="w-[50%]">{info?.phone2}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Address</p>
-              <p className="w-[50%]">Dar es salaam</p>
+              <p className="w-[50%]">{info?.address2}</p>
             </div>
           </div>
         </Card>
@@ -177,10 +154,33 @@ const Employee = () => {
       }
     };
 
+    const getEmployeeInfo = async () => {
+      const docRef = doc(
+        db,
+        "users",
+        "employees",
+        employeeID,
+        "public",
+        "account",
+        "additionalInfo"
+      );
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        dispatch(addAdditionalInfo(data));
+      } else {
+        // docSnap.data() will be undefined in this case
+        console.log("No such document!");
+      }
+    };
+
     getEmployeeDetails();
+    getEmployeeInfo();
   }, [dispatch]);
 
   const employeeDetails = useSelector(selectEmployeeDetails);
+  const info = useSelector(selectAdditionalInfo);
 
   return (
     <div className="px-4">
@@ -241,11 +241,13 @@ const Employee = () => {
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0}>
-          <ProfileInfo />
+          <ProfileInfo info={info} />
         </CustomTabPanel>
-        <CustomTabPanel value={value} index={1}></CustomTabPanel>
+        <CustomTabPanel value={value} index={1}>
+          <EmployeeSalary info={info} />
+        </CustomTabPanel>
         <CustomTabPanel value={value} index={2}>
-          <EmployeeLoans/>
+          <EmployeeLoans />
         </CustomTabPanel>
         <CustomTabPanel value={value} index={3}>
           <EmployeeAssets />

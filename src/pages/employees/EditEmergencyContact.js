@@ -1,12 +1,7 @@
 import React, { useState } from "react";
 import { db } from "../../App";
-import {
-  doc,
-  setDoc,
-  getDoc,
-} from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import Box from "@mui/material/Box";
-import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Autocomplete, Button } from "@mui/material";
@@ -14,6 +9,7 @@ import { useDispatch } from "react-redux";
 import { addAdditionalInfo } from "../../features/employeeSlice";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
+import { Edit } from "@mui/icons-material";
 
 const style = {
   position: "absolute",
@@ -22,19 +18,22 @@ const style = {
   transform: "translate(-50%, -50%)",
   width: 700,
   bgcolor: "background.paper",
-//   boxShadow: 24,
+  //   boxShadow: 24,
   p: 4,
 };
 
-const AddEmergencyContacts = () => {
+const EditEmergencyContacts = ({ info }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [name, setName] = useState("");
-  const [relation, setRelation] = useState("");
-  const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(info?.contactName2);
+  const [relation, setRelation] = useState({
+    id: info?.relation2,
+    label: info?.relation2,
+  });
+  const [address, setAddress] = useState(info?.address2);
+  const [phone, setPhone] = useState(info?.phone2);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -100,19 +99,19 @@ const AddEmergencyContacts = () => {
         "account",
         "additionalInfo"
       );
-      await setDoc(dataRef, {
+      await updateDoc(dataRef, {
         contactName2: name,
         relation2: relation?.id,
         address2: address,
         phone2: phone,
-      }, { merge: true })
+      })
         .then(() => {
           setName("");
           setRelation("");
           setAddress("");
           setPhone("");
           getEmployeeInfo();
-          toast.success("Emergency contact is saved successfully");
+          toast.success("Emergency contact is updated successfully");
           setLoading(false);
         })
         .catch((error) => {
@@ -122,7 +121,6 @@ const AddEmergencyContacts = () => {
         });
     }
   };
-
 
   const renderButton = () => {
     if (loading) {
@@ -151,7 +149,7 @@ const AddEmergencyContacts = () => {
             className="w-[82%]"
             onClick={(e) => employeeRegistration(e)}
           >
-            SAVE EMERGENCY CONTACT
+            EDIT EMERGENCY CONTACT
           </Button>
         </>
       );
@@ -164,7 +162,7 @@ const AddEmergencyContacts = () => {
         onClick={handleOpen}
         className="h-8 w-8 bg-zinc-300 cursor-pointer rounded-full flex flex-row gap-1 justify-center"
       >
-        <Add className="my-1" />
+        <Edit className="my-1" />
       </div>
 
       <Modal
@@ -175,7 +173,7 @@ const AddEmergencyContacts = () => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add Emergency Contact</h3>
+            <h3 className="text-center text-xl py-4">Edit Emergency Contact</h3>
             <div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
                 <TextField
@@ -233,4 +231,4 @@ const AddEmergencyContacts = () => {
   );
 };
 
-export default AddEmergencyContacts;
+export default EditEmergencyContacts;

@@ -7,7 +7,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
 import { db } from "../../App";
 import { Modal, Tag } from "antd";
 import {
@@ -19,6 +19,7 @@ import {
 import { Cancel, CheckCircle, RemoveRedEye } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import AssetHistory from "./AssetHistory";
+import { toast } from "react-hot-toast";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -78,19 +79,20 @@ const Asset = () => {
     setValue(newValue);
   };
 
-  useEffect(() => {
-    const getAssetDetails = async () => {
-      const docRef = doc(db, "assetsBucket", assetID);
-      const docSnap = await getDoc(docRef);
+  const getAssetDetails = async () => {
+    const docRef = doc(db, "assetsBucket", assetID);
+    const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        dispatch(addAssetDetails(data));
-      } else {
-        // docSnap.data() will be undefined in this case
-        console.log("No such document!");
-      }
-    };
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      dispatch(addAssetDetails(data));
+    } else {
+      // docSnap.data() will be undefined in this case
+      console.log("No such document!");
+    }
+  };
+
+  useEffect(() => {
 
     const getAssetHistory = async () => {
       let assetArray = [];
@@ -116,7 +118,32 @@ const Asset = () => {
   const assetDetails = useSelector(selectAssetsDetails);
   const assetHistory = useSelector(selectAssetHistory);
 
-  const handleActiveStatus = () => {};
+  const handleActiveStatus = async(status) => {
+    //start registration
+    setActiveLoading(true);
+    try {
+      // Add a new document with a generated id
+      const dataRef = doc(db, "assetsBucket", assetID);
+      await updateDoc(dataRef, {
+        active: !status,
+        updated_at: Timestamp.fromDate(new Date()),
+      })
+        .then(() => {
+          getAssetDetails();
+          toast.success("Asset active status is changed successfully");
+          setActiveLoading(false);
+        })
+        .catch((error) => {
+          // console.error("Error removing document: ", error.message);
+          toast.error(error.message);
+          setActiveLoading(false);
+        });
+    } catch (error) {
+      // console.error(error);
+      toast.error(error.message);
+      setActiveLoading(false);
+    }
+  };
 
   const handleStatus = () => {};
 
@@ -233,7 +260,7 @@ const Asset = () => {
                 <button
                   type="button"
                   className="px-6 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
-                  onClick={() => handleActiveStatus()}
+                  onClick={() => handleActiveStatus(assetDetails?.active)}
                 >
                   {assetDetails?.active ? (
                     <>Deactivate Asset</>

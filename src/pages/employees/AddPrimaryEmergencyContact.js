@@ -26,7 +26,7 @@ const style = {
   p: 4,
 };
 
-const AddEmergencyContacts = () => {
+const AddPrimaryEmergencyContacts = () => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -101,10 +101,10 @@ const AddEmergencyContacts = () => {
         "additionalInfo"
       );
       await setDoc(dataRef, {
-        contactName2: name,
-        relation2: relation?.id,
-        address2: address,
-        phone2: phone,
+        contactName: name,
+        relation: relation?.id,
+        address,
+        phone,
       }, { merge: true })
         .then(() => {
           setName("");
@@ -175,7 +175,7 @@ const AddEmergencyContacts = () => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add Emergency Contact</h3>
+            <h3 className="text-center text-xl py-4">Add Primary Emergency Contact</h3>
             <div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
                 <TextField
@@ -233,4 +233,4 @@ const AddEmergencyContacts = () => {
   );
 };
 
-export default AddEmergencyContacts;
+export default AddPrimaryEmergencyContacts;
