@@ -7,7 +7,14 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import { collection, doc, getDoc, getDocs, Timestamp, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  Timestamp,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../../App";
 import { Modal, Tag } from "antd";
 import {
@@ -20,6 +27,7 @@ import { Cancel, CheckCircle, RemoveRedEye } from "@mui/icons-material";
 import { IconButton } from "@mui/material";
 import AssetHistory from "./AssetHistory";
 import { toast } from "react-hot-toast";
+import AssignAsset from "./AssignAsset";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -93,7 +101,6 @@ const Asset = () => {
   };
 
   useEffect(() => {
-
     const getAssetHistory = async () => {
       let assetArray = [];
 
@@ -118,7 +125,7 @@ const Asset = () => {
   const assetDetails = useSelector(selectAssetsDetails);
   const assetHistory = useSelector(selectAssetHistory);
 
-  const handleActiveStatus = async(status) => {
+  const handleActiveStatus = async (status) => {
     //start registration
     setActiveLoading(true);
     try {
@@ -271,26 +278,16 @@ const Asset = () => {
               )}
             </div>
             <div className="py-2">
-              {statusLoading ? (
-                <button
-                  type="button"
-                  className="px-6 py-2 w-full cursor-not-allowed opacity-25 border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
-                >
-                  Loading ...
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="px-6 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
-                  onClick={() => handleStatus()}
-                >
+              {assetDetails ? (
+                <>
+                  {" "}
                   {assetDetails?.status === "available" ? (
-                    <>Assign Asset</>
+                    <AssignAsset />
                   ) : (
                     <>Return Asset</>
                   )}
-                </button>
-              )}
+                </>
+              ) : null}
             </div>
           </div>
         </div>
