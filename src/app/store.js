@@ -4,6 +4,7 @@ import userReducer from "../features/userSlice";
 import settingSlice from "../features/settingSlice";
 import assetReducer from "../features/assetSlice";
 import employeeReducer from "../features/employeeSlice";
+import loanReducer from "../features/loanSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     settings: settingSlice,
     asset: assetReducer,
     employee: employeeReducer,
+    loan: loanReducer,
   },
   middleware: [thunk]
 });

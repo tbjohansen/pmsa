@@ -1,15 +1,17 @@
 import React, { useEffect } from "react";
 import { db } from "../../App";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { Table, Tag } from "antd";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { IconButton } from "@mui/material";
 import { RemoveRedEye } from "@mui/icons-material";
 import AddLoan from "./AddLoan";
 import {
   addLoanDetails,
+  addLoanPayments,
   addLoans,
+  selectLoanPayments,
   selectLoans,
 } from "../../features/loanSlice";
 import moment from "moment";
@@ -101,14 +103,17 @@ const ViewLoan = ({ loan }) => {
   );
 };
 
-const Loans = () => {
+const PaymentHistory = () => {
   const dispatch = useDispatch();
+  const {loanID} = useParams();
 
   useEffect(() => {
-    const getLoans = async () => {
+    const getPayments = async () => {
       let loansArray = [];
 
-      const querySnapshot = await getDocs(collection(db, "loans"));
+      const q = query(collection(db, "loanPayments"), where("loanID", "==", loanID))
+
+      const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
         //set data
         const data = doc.data();
@@ -116,14 +121,14 @@ const Loans = () => {
       });
 
       if (loansArray.length > 0) {
-        dispatch(addLoans(loansArray));
+        dispatch(addLoanPayments(loansArray));
       }
     };
 
-    getLoans();
+    getPayments();
   }, [dispatch]);
 
-  const loans = useSelector(selectLoans);
+  const loans = useSelector(selectLoanPayments);
 
   const loansList = loans.slice().sort((a, b) => b.created_at - a.created_at);
   const sortedLoans = loansList.map((loan, index) => {
@@ -132,10 +137,7 @@ const Loans = () => {
   });
 
   return (
-    <div className="px-2">
-      <div className="flex flex-row justify-end">
-        <AddLoan />
-      </div>
+    <div className="">
       <div className="pt-8">
         <Table
           columns={columns}
@@ -148,4 +150,4 @@ const Loans = () => {
   );
 };
 
-export default Loans;
+export default PaymentHistory;

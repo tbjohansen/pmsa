@@ -7,9 +7,11 @@ import {
   getDocs,
   Timestamp,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
+import moment from "moment";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
@@ -17,16 +19,17 @@ import TextField from "@mui/material/TextField";
 import { Autocomplete, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import { addAssets } from "../../features/assetSlice";
+import { addAssetDetails, addAssetHistory, addAssets } from "../../features/assetSlice";
 import { addEmployees, selectEmployees } from "../../features/employeeSlice";
 import { useParams } from "react-router-dom";
+import { addUserInfo, selectUserInfo } from "../../features/userSlice";
 
 const style = {
   position: "absolute",
   top: "45%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: 600,
+  width: 700,
   bgcolor: "background.paper",
   // boxShadow: 24,
   p: 4,
@@ -47,7 +50,6 @@ const AssignAsset = ({ asset }) => {
 
   const user = auth.currentUser;
   const uid = user?.uid;
-  const displayName = user?.displayName;
 
   useEffect(() => {
     const getEmployees = async () => {
@@ -65,8 +67,29 @@ const AssignAsset = ({ asset }) => {
       }
     };
 
+    const getAssignor = async () => {
+      try {
+        const docRef = doc(db, "users", "admins", uid, "public", "account", "info");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          dispatch(addUserInfo(data));
+        } else {
+          // docSnap.data() will be undefined in this case
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
     getEmployees();
+    getAssignor();
   }, [dispatch]);
+
+  
+  const userInfo = useSelector(selectUserInfo);
 
   const employees = useSelector(selectEmployees);
   const sortedEmployees = employees.map((employee) => ({
@@ -77,21 +100,36 @@ const AssignAsset = ({ asset }) => {
 
   const employeeOnChange = (e, value) => {
     // console.log(value);
-    setEmployee(value.data);
+    setEmployee(value);
   };
 
-  const getAssets = async () => {
-    let assetsArray = [];
+  const getAssetHistory = async () => {
+    let assetArray = [];
 
-    const querySnapshot = await getDocs(collection(db, "assetsBucket"));
+    const querySnapshot = await getDocs(
+      collection(db, "assets", assetID, "assignments")
+    );
     querySnapshot.forEach((doc) => {
       //set data
       const data = doc.data();
-      assetsArray.push(data);
+      assetArray.push(data);
     });
 
-    if (assetsArray.length > 0) {
-      dispatch(addAssets(assetsArray));
+    if (assetArray.length > 0) {
+      dispatch(addAssetHistory(assetArray));
+    }
+  };
+
+  const getAssetDetails = async () => {
+    const docRef = doc(db, "assetsBucket", assetID);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      dispatch(addAssetDetails(data));
+    } else {
+      // docSnap.data() will be undefined in this case
+      console.log("No such document!");
     }
   };
 
@@ -108,16 +146,24 @@ const AssignAsset = ({ asset }) => {
       try {
         // Add a new document with a generated id
         const dataRef = doc(
-          collection(db, "users", "employees", employee?.id, "public", "assets")
+          collection(
+            db,
+            "users",
+            "employees",
+            employee?.data?.id,
+            "public",
+            "assets"
+          )
         );
         await setDoc(dataRef, {
-          employeeID: employee?.id,
-          employeeName: `${employee.firstName} ${employee.middleName} ${employee.lastName}`,
-          employeeDesignation: employee?.designation,
-          assignedDate,
-          assignorName: displayName,
+          employeeID: employee?.data.id,
+          employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+          employeeDesignation: employee?.data?.designation,
+          assignedDate: new Date(assignedDate),
+          assignor: { id: uid, name: userInfo?.fullName, role: userInfo?.role },
           assignorID: uid,
           assetID,
+          assetType: "",
           assetName: asset?.name,
           assetNumber: asset?.assetNumber,
           description,
@@ -126,14 +172,7 @@ const AssignAsset = ({ asset }) => {
           updated_at: Timestamp.fromDate(new Date()),
         })
           .then(() => {
-            setAssignedAssetToPath();
-
-            setEmployee("");
-            setDate("");
-            setDescription("");
-            getAssets();
-            toast.success("Asset is saved successfully");
-            setLoading(false);
+            setAssignedAssetToPath({ employeeRefID: dataRef.id });
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
@@ -147,17 +186,18 @@ const AssignAsset = ({ asset }) => {
     }
   };
 
-  const setAssignedAssetToPath = async () => {
+  const setAssignedAssetToPath = async ({ employeeRefID }) => {
     //
     const dataRef = doc(collection(db, "assets", assetID, "assigned"));
     await setDoc(dataRef, {
-      employeeID: employee?.id,
-      employeeName: `${employee.firstName} ${employee.middleName} ${employee.lastName}`,
-      employeeDesignation: employee?.designation,
-      assignedDate,
-      assignorName: displayName,
+      employeeID: employee?.data.id,
+      employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+      employeeDesignation: employee?.data?.designation,
+      assignedDate: new Date(assignedDate),
+      assignor: { id: uid, name: userInfo?.fullName, role: userInfo?.role },
       assignorID: uid,
       assetID,
+      assetType: "",
       assetName: asset?.name,
       assetNumber: asset?.assetNumber,
       description,
@@ -166,7 +206,11 @@ const AssignAsset = ({ asset }) => {
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(() => {
-        updateAssignedAssetPath();
+        updateAssignedAssetPath({
+          assetRefID: dataRef.id,
+          employeeRefID,
+          employeeID: employee?.data?.id,
+        });
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
@@ -175,21 +219,31 @@ const AssignAsset = ({ asset }) => {
       });
   };
 
-  const updateAssignedAssetPath = async () => {
+  const updateAssignedAssetPath = async ({
+    assetRefID,
+    employeeRefID,
+    employeeID,
+  }) => {
     //
     const dataRef = doc(db, "assetsBucket", assetID);
     await updateDoc(dataRef, {
       assigned: true,
       status: "assigned",
+      assetRefID,
+      employeeID,
+      employeeRefID,
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(() => {
         setEmployee("");
-        setDate("");
+        setDate(null);
         setDescription("");
-        getAssets();
+        
         toast.success("Asset is assgned to employee successfully");
         setLoading(false);
+
+        getAssetDetails();
+        getAssetHistory();
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);
@@ -205,7 +259,7 @@ const AssignAsset = ({ asset }) => {
           <Button
             size="large"
             variant="contained"
-            className="w-[100%] cursor-not-allowed"
+            className="w-[82%] cursor-not-allowed"
             disabled
           >
             <svg
@@ -222,7 +276,7 @@ const AssignAsset = ({ asset }) => {
           <Button
             size="large"
             variant="contained"
-            className="w-[100%]"
+            className="w-[82%]"
             onClick={(e) => assetRegistration(e)}
           >
             ASSIGN ASSET
@@ -256,8 +310,8 @@ const AssignAsset = ({ asset }) => {
                 <Autocomplete
                   id="combo-box-demo"
                   options={sortedEmployees}
-                  size="large"
-                  className="w-[100%]"
+                  size="small"
+                  className="w-[82%]"
                   value={employee}
                   onChange={employeeOnChange}
                   renderInput={(params) => (
@@ -266,13 +320,15 @@ const AssignAsset = ({ asset }) => {
                 />
               </div>
               <div className="w-full py-2 flex justify-center">
-                <LocalizationProvider
+              <LocalizationProvider
                   dateAdapter={AdapterMoment}
-                  className="w-[100%]"
+                  dateLibInstance={moment.utc}
                 >
                   <DatePicker
+                    label="Select date"
                     value={assignedDate}
                     onChange={(newValue) => setDate(newValue)}
+                    className="w-[82%]"
                   />
                 </LocalizationProvider>
               </div>
@@ -283,7 +339,7 @@ const AssignAsset = ({ asset }) => {
                   multiline
                   rows={2}
                   variant="outlined"
-                  className="w-[100%]"
+                  className="w-[82%]"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />

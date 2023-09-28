@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
-import Card from "@mui/material/Card";
 import PropTypes from "prop-types";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
@@ -20,7 +19,6 @@ import { Modal, Tag } from "antd";
 import {
   addAssetDetails,
   addAssetHistory,
-  selectAssetHistory,
   selectAssetsDetails,
 } from "../../features/assetSlice";
 import { Cancel, CheckCircle, RemoveRedEye } from "@mui/icons-material";
@@ -70,7 +68,7 @@ const Asset = () => {
 
   const [value, setValue] = useState(0);
   const [activeLoading, setActiveLoading] = useState(false);
-  const [statusLoading, setStatusLoading] = useState(false);
+  const [returnLoading, setReturnLoading] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => {
@@ -123,7 +121,6 @@ const Asset = () => {
   }, [dispatch]);
 
   const assetDetails = useSelector(selectAssetsDetails);
-  const assetHistory = useSelector(selectAssetHistory);
 
   const handleActiveStatus = async (status) => {
     //start registration
@@ -152,7 +149,80 @@ const Asset = () => {
     }
   };
 
-  const handleStatus = () => {};
+  const handleReturnAssset = async (asset) => {
+    setReturnLoading(true);
+
+    try {
+      // Add a new document with a generated id
+      const dataRef = doc(
+        db,
+        "assets",
+        assetID,
+        "assigned",
+        asset?.assetRefID
+      );
+      await updateDoc(dataRef, {
+        returned: true,
+        returnDate: Timestamp.fromDate(new Date()),
+        updated_at: Timestamp.fromDate(new Date()),
+      })
+        .then(async () => {
+          // update employee asset path
+          const assetRef = doc(
+            db,
+            "users",
+            "employees",
+            asset?.employeeID,
+            "public",
+            "assets",
+            asset?.employeeRefID
+          );
+          await updateDoc(assetRef, {
+            returned: true,
+            returnDate: Timestamp.fromDate(new Date()),
+            updated_at: Timestamp.fromDate(new Date()),
+          })
+            .then(() => {
+              // update asset bucket
+              updateAssetBucket();
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+              setReturnLoading(false);
+            });
+        })
+        .catch((error) => {
+          // console.error("Error removing document: ", error.message);
+          toast.error(error.message);
+          setReturnLoading(false);
+        });
+    } catch (error) {
+      toast.error(error.message);
+      setReturnLoading(false);
+    }
+  };
+
+  const updateAssetBucket = async () => {
+    //
+    const dataRef = doc(db, "assetsBucket", assetID);
+    await updateDoc(dataRef, {
+      assigned: false,
+      status: "available",
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(() => {
+        // update employee asset path
+        getAssetDetails();
+        toast.success("Asset is returned successfully");
+        setReturnLoading(false);
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+        setReturnLoading(false);
+      });
+  };
 
   const renderDescription = (description) => {
     return (
@@ -228,7 +298,7 @@ const Asset = () => {
               <div className="flex flex-row justify-center rounded-full bg-zinc-200 w-20 h-20"></div>
             </div>
             <div className="w-[85%] px-2 my-4">
-              <div className="flex flex-row gap-2 1">
+              <div className="flex flex-row gap-2 py-1">
                 <p className="w-[30%]">Asset Type:</p>
                 <p className="w-[70%] capitalize">{assetDetails?.typeName}</p>
               </div>
@@ -282,9 +352,26 @@ const Asset = () => {
                 <>
                   {" "}
                   {assetDetails?.status === "available" ? (
-                    <AssignAsset />
+                    <AssignAsset asset={assetDetails} />
                   ) : (
-                    <>Return Asset</>
+                    <>
+                      {returnLoading ? (
+                        <button
+                          type="button"
+                          className="px-6 py-2 w-full cursor-not-allowed opacity-25 border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+                        >
+                          Loading ...
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="px-6 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+                          onClick={() => handleReturnAssset(assetDetails)}
+                        >
+                          Return Asset
+                        </button>
+                      )}
+                    </>
                   )}
                 </>
               ) : null}

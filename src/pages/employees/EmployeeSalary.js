@@ -3,6 +3,8 @@ import { Card } from "@mui/material";
 import AddEmployeeSalary from "./AddEmployeeSalary";
 import EditEmployeeSalary from "./EditEmployeeSalary";
 
+const formatter = new Intl.NumberFormat("en-US");
+
 const EmployeeSalary = ({ info }) => {
   return (
     <div className="w-[100%]">
@@ -22,7 +24,7 @@ const EmployeeSalary = ({ info }) => {
         <div className="px-4 pb-2">
           <div className="flex flex-row gap-2 py-2">
             <p className="w-[50%]">Salary Amount</p>
-            <p className="w-[50%]">{info?.salary}</p>
+            <p className="w-[50%]">TZS {formatter.format(info?.salary)}</p>
           </div>
           <div className="flex flex-row gap-2 py-2">
             <p className="w-[50%]">Payment Mode</p>
@@ -38,7 +40,7 @@ const EmployeeSalary = ({ info }) => {
           </div>
           <div className="flex flex-row gap-2 py-2">
             <p className="w-[50%]">PAYE Amount</p>
-            <p className="w-[50%]">{info?.paye}</p>
+            <p className="w-[50%]">TZS {formatter.format(info?.paye)}</p>
           </div>
         </div>
       </Card>

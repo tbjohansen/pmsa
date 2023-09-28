@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../App";
-import { collection, getDocs,} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import {  Modal, Table } from "antd";
+import { Modal, Table } from "antd";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import { IconButton } from "@mui/material";
 import { addAssetHistory, selectAssetHistory } from "../../features/assetSlice";
+import moment from "moment";
 
 const columns = [
   {
@@ -16,46 +17,44 @@ const columns = [
     render: (text) => <>{text}</>,
   },
   {
-    title: "Type",
-    dataIndex: "typeName",
-    key: "typeName",
-    render: (text) => <p className="capitalize">{text}</p>,
-  },
-  {
-    title: "Name",
-    dataIndex: "name",
+    title: "Employee",
     key: "name",
-    render: (text) => <p className="capitalize">{text}</p>,
-  },
-  {
-    title: "Asset Number",
-    dataIndex: "assetNumber",
-    key: "assetNumber",
-    render: (text) => <p className="">{text}</p>,
+    render: (_, asset) => (
+      <>
+        <p>{asset?.employeeName}</p>
+        <p className="capitalize">{asset?.employeeDesignation}</p>
+      </>
+    ),
   },
   {
     title: "Assignor",
-    dataIndex: "assignor",
     key: "assignor",
-    render: (text) => <p className="">{text}</p>,
+    dataIndex: "assignor",
+    render: (assignor) => (
+      <>
+        <p>{assignor?.name}</p>
+        <p className="capitalize">{assignor?.role}</p>
+      </>
+    ),
   },
   {
     title: "Assigned Date",
     dataIndex: "assignedDate",
     key: "assignedDate",
-    render: (text) => <p className="">{text}</p>,
-  },
-  {
-    title: "Assignee",
-    dataIndex: "assignee",
-    key: "assignee",
-    render: (text) => <p className="">{text}</p>,
+    render: (date) => <p>{moment.unix(date?.seconds).format("DD-MM-YYYY")}</p>,
   },
   {
     title: "Returned date",
-    dataIndex: "returnedDate",
     key: "returnedDate",
-    render: (text) => <p className="">{text}</p>,
+    render: (_, asset) => (
+      <>
+        {asset?.returned ? (
+          <p>{moment(asset?.returnedDate).format("DD-MM-YYY")}</p>
+        ) : (
+          <p>In Possession</p>
+        )}
+      </>
+    ),
   },
   {
     title: "Actions",
@@ -69,7 +68,6 @@ const columns = [
 ];
 
 const ViewAsset = ({ asset }) => {
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => {
     setIsModalOpen(true);
@@ -87,67 +85,62 @@ const ViewAsset = ({ asset }) => {
         <RemoveRedEye className="text-red-500 text-lg" />
       </IconButton>
       <Modal
-          title=""
-          open={isModalOpen}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          okButtonProps={{
-            className: "hidden",
-          }}
-          cancelButtonProps={{
-            className: "hidden",
-          }}
-          width={600}
-        >
-          <h4 className="text-lg font-semibold text-center pb-2">
-            Description
-          </h4>
-          <div className="text-sm py-1">
-            <p>{asset?.description}</p>
-          </div>
-        </Modal>
+        title=""
+        open={isModalOpen}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        okButtonProps={{
+          className: "hidden",
+        }}
+        cancelButtonProps={{
+          className: "hidden",
+        }}
+        width={600}
+      >
+        <h4 className="text-lg font-semibold text-center pb-2">Description</h4>
+        <div className="text-sm py-1">
+          <p>{asset?.description}</p>
+        </div>
+      </Modal>
     </p>
   );
 };
 
-
 const AssetHistory = () => {
   const dispatch = useDispatch();
-  const {assetID} = useParams();
+  const { assetID } = useParams();
 
   useEffect(() => {
     const getAssetHistory = async () => {
-        let assetArray = [];
-  
-        const querySnapshot = await getDocs(
-          collection(db, "assets", assetID, "assignments")
-        );
-        querySnapshot.forEach((doc) => {
-          //set data
-          const data = doc.data();
-          assetArray.push(data);
-        });
-  
-        if (assetArray.length > 0) {
-          dispatch(addAssetHistory(assetArray));
-        }
-      };
+      let assetArray = [];
 
-      getAssetHistory();
+      const querySnapshot = await getDocs(
+        collection(db, "assets", assetID, "assigned")
+      );
+      querySnapshot.forEach((doc) => {
+        //set data
+        const data = doc.data();
+        assetArray.push(data);
+      });
+
+      if (assetArray.length > 0) {
+        dispatch(addAssetHistory(assetArray));
+      }
+    };
+
+    getAssetHistory();
   }, [dispatch]);
 
   const assets = useSelector(selectAssetHistory);
 
-  const assetList = assets
-    .slice()
-    .sort((a, b) => b.created_at - a.created_at);
+  const assetList = assets.slice().sort((a, b) => b.created_at - a.created_at);
   const sortedAssets = assetList.map((asset, index) => {
     const key = index + 1;
     return { ...asset, key };
   });
 
   return (
-    <div className="px-2">
+    <div className="">
       <div className="pt-8">
         <Table
           columns={columns}

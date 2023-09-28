@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import {  Modal, Table } from "antd";
 import {
   addEmployeesAssets,
   selectEmployeeAssets,
 } from "../../features/employeeSlice";
-import toast from "react-hot-toast";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import { IconButton } from "@mui/material";
+import moment from "moment";
 
 const columns = [
   {
@@ -21,14 +21,14 @@ const columns = [
   },
   {
     title: "Type",
-    dataIndex: "typeName",
-    key: "typeName",
+    dataIndex: "assetType",
+    key: "assetType",
     render: (text) => <p className="capitalize">{text}</p>,
   },
   {
     title: "Name",
-    dataIndex: "name",
-    key: "name",
+    dataIndex: "assetName",
+    key: "assetName",
     render: (text) => <p className="capitalize">{text}</p>,
   },
   {
@@ -41,26 +41,37 @@ const columns = [
     title: "Assigned Date",
     dataIndex: "assignedDate",
     key: "assignedDate",
-    render: (text) => <p className="">{text}</p>,
+    render: (date) => <p>{moment.unix(date?.seconds).format("DD-MM-YYYY")}</p>,
   },
   {
     title: "Assignor",
-    dataIndex: "assignor",
     key: "assignor",
-    render: (text) => <p className="">{text}</p>,
+    dataIndex: "assignor",
+    render: (assignor) => (
+      <>
+        <p>{assignor?.name}</p>
+        <p className="capitalize">{assignor?.role}</p>
+      </>
+    ),
   },
   {
     title: "Returned date",
-    dataIndex: "returnedDate",
     key: "returnedDate",
-    render: (text) => <p className="">{text}</p>,
+    render: (_, asset) => (
+      <>
+        {asset?.returned ? (
+          <p>{moment(asset?.returnedDate).format("DD-MM-YYY")}</p>
+        ) : (
+          <p>In Possession</p>
+        )}
+      </>
+    ),
   },
   {
     title: "Actions",
     key: "action",
     render: (_, asset) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditEmployee employee={employee} /> */}
         <ViewAsset asset={asset} />
       </p>
     ),
@@ -144,7 +155,7 @@ const EmployeeAssets = () => {
   });
 
   return (
-    <div className="px-2">
+    <div className="">
       <div className="pt-8">
         <Table
           columns={columns}

@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import {  Modal, Table } from "antd";
+import {  Modal, Table, Tag } from "antd";
 import {
   addEmployeesLoans,
   selectEmployeeLoans,
 } from "../../features/employeeSlice";
-import toast from "react-hot-toast";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import { IconButton } from "@mui/material";
+import moment from "moment";
+
+const formatter = new Intl.NumberFormat("en-US");
 
 const columns = [
   {
@@ -20,54 +22,55 @@ const columns = [
     render: (text) => <>{text}</>,
   },
   {
-    title: "Type",
-    dataIndex: "typeName",
-    key: "typeName",
-    render: (text) => <p className="capitalize">{text}</p>,
+    title: "Amount",
+    dataIndex: "amount",
+    key: "amount",
+    render: (text) => <>TZS {formatter.format(text)}</>,
   },
   {
-    title: "Name",
-    dataIndex: "name",
-    key: "name",
-    render: (text) => <p className="capitalize">{text}</p>,
+    title: "Date",
+    dataIndex: "date",
+    key: "date",
+    render: (date) => <>{moment.unix(date?.seconds).format("DD-MM-YYYY")}</>,
   },
   {
-    title: "Asset Number",
-    dataIndex: "assetNumber",
-    key: "assetNumber",
-    render: (text) => <p className="">{text}</p>,
+    title: "Period",
+    dataIndex: "deductionMonths",
+    key: "deductionMonths",
+    render: (text) => <>{text} Months</>,
   },
   {
-    title: "Assigned Date",
-    dataIndex: "assignedDate",
-    key: "assignedDate",
-    render: (text) => <p className="">{text}</p>,
+    title: "Monthly Deduction",
+    dataIndex: "deductionAmount",
+    key: "deductionAmount",
+    render: (text) => <p>TZS {formatter.format(text)}</p>,
   },
   {
-    title: "Assignee",
-    dataIndex: "assignee",
-    key: "assignee",
-    render: (text) => <p className="">{text}</p>,
-  },
-  {
-    title: "Returned date",
-    dataIndex: "returnedDate",
-    key: "returnedDate",
-    render: (text) => <p className="">{text}</p>,
+    title: "Debt",
+    key: "debt",
+    dataIndex: "debt",
+    render: (_, { debt }) => (
+      <>
+        {debt == 0 ? (
+          <Tag color={"green"}>Paid</Tag>
+        ) : (
+          <p>TZS {formatter.format(debt)}</p>
+        )}
+      </>
+    ),
   },
   {
     title: "Actions",
     key: "action",
-    render: (_, asset) => (
+    render: (_, loan) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditEmployee employee={employee} /> */}
-        <ViewAsset asset={asset} />
+        <ViewLoan loan={loan} />
       </p>
     ),
   },
 ];
 
-const ViewAsset = ({ asset }) => {
+const ViewLoan = ({ loan }) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => {
@@ -99,10 +102,10 @@ const ViewAsset = ({ asset }) => {
           width={600}
         >
           <h4 className="text-lg font-semibold text-center pb-2">
-            Asset Description
+            Loan Description
           </h4>
           <div className="text-sm py-1">
-            <p>{asset?.description}</p>
+            <p>{loan?.description}</p>
           </div>
         </Modal>
     </p>

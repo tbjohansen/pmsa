@@ -12,6 +12,7 @@ import Loans from "../pages/loans/Loans";
 import Payroll from "../pages/payroll/Payroll";
 import Employee from "../pages/employees/Employee";
 import Asset from "../pages/assets/Asset";
+import Loan from "../pages/loans/Loan";
 
 const LoginElement = () => <Login />;
 // const DeviceElement = () => <DeviceInfo />;
@@ -70,6 +71,12 @@ const LoansElement = () => (
   </AppLayout>
 );
 
+const LoanElement = () => (
+  <AppLayout>
+    <Loan />
+  </AppLayout>
+);
+
 const PayrollElement = () => (
   <AppLayout>
     <Payroll />
@@ -98,6 +105,7 @@ const App = () => {
 
           <Route path="/employees/:employeeID" element={<EmployeeElement />} />
           <Route path="/assets/:assetID" element={<AssetElement />} />
+          <Route path="/loans/:loanID" element={<LoanElement />} />
         </Route>
       </Routes>
     </React.Fragment>
