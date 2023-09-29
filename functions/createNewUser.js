@@ -20,6 +20,7 @@ exports.createNewUser = onCall(
         email: email,
         emailVerified: true,
         password: "msa@1234",
+        displayName: name,
         disabled: false,
       });
 

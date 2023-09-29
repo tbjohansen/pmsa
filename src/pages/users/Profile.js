@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SyncLock } from "@mui/icons-material";
 import { Box, Button, Modal, TextField } from "@mui/material";
 import { signOut, updatePassword } from "firebase/auth";
 import { toast } from "react-hot-toast";
-import { auth } from "../../App";
+import { auth, db } from "../../App";
 import { useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { addUserInfo, selectUserInfo } from "../../features/userSlice";
+import { useDispatch, useSelector } from "react-redux";
 
 const style = {
   position: "absolute",
@@ -26,8 +29,33 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const user = auth.currentUser;
+  const uid = user.uid;
+
+  useEffect(() => {
+    const getProfile = async () => {
+      try {
+        const docRef = doc(db, "userBucket", uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          dispatch(addUserInfo(data));
+        } else {
+          // docSnap.data() will be undefined in this case
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    getProfile();
+  }, [dispatch]);
+
+  const profile = useSelector(selectUserInfo);
 
   const changePassword = async (e) => {
     e.preventDefault();
@@ -47,14 +75,15 @@ const Profile = () => {
           setLoading(false);
 
           //signout
-          signOut(auth).then(() => {
-            // Sign-out successful.
-            navigate(`/login`);
-          }).catch((error) => {
-            // An error happened.
-            console.log(error.message);
-          });
-        
+          signOut(auth)
+            .then(() => {
+              // Sign-out successful.
+              navigate(`/login`);
+            })
+            .catch((error) => {
+              // An error happened.
+              console.log(error.message);
+            });
         })
         .catch((error) => {
           // An error ocurred
@@ -104,12 +133,14 @@ const Profile = () => {
         <div className="w-32 h-32 mx-auto rounded-full bg-gray-500 aspect-square"></div>
         <div className="space-y-4 text-center divide-y divide-gray-300">
           <div className="my-2 space-y-1">
-            <h2 className="text-xl font-semibold sm:text-2xl">Leroy Jenkins</h2>
+            <h2 className="text-xl font-semibold sm:text-2xl">
+              {profile?.fullName}
+            </h2>
             <p className="px-5 text-xs sm:text-base text-gray-600">
-              Super Admin
+              {profile?.role}
             </p>
             <p className="px-5 text-xs sm:text-base text-gray-600">
-              admin@hrmsa.com
+              {profile?.email}
             </p>
           </div>
           <div className="flex justify-center pt-2 space-x-4 align-center">

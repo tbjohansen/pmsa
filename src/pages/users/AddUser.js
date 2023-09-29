@@ -14,7 +14,7 @@ import { Autocomplete, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { addRoles, selectRoles } from "../../features/settingSlice";
 import { addUsers } from "../../features/userSlice";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const style = {
   position: "absolute",

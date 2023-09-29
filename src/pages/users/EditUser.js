@@ -7,14 +7,14 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import Box from "@mui/material/Box";
-import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { Autocomplete, Button } from "@mui/material";
+import { Autocomplete, Button, IconButton } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { addRoles, selectRoles } from "../../features/settingSlice";
 import { addUsers } from "../../features/userSlice";
 import toast from 'react-hot-toast';
+import { Edit } from "@mui/icons-material";
 
 const style = {
   position: "absolute",
@@ -28,14 +28,14 @@ const style = {
 };
 
 
-const EditUser = () => {
+const EditUser = ({user}) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [fullName, setName] = useState("");
-  const [role, setRole] = useState("");
-  const [email, setEmail] = useState("");
+  const [fullName, setName] = useState(user?.fullName);
+  const [role, setRole] = useState({id: user?.roleID, label: user?.roleName});
+  const [email, setEmail] = useState(user?.email);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -100,18 +100,18 @@ const EditUser = () => {
       //start registration
       setLoading(true);
 
-      const created_at = Timestamp.fromDate(new Date());
+      const updated_at = Timestamp.fromDate(new Date());
 
-      //create user
-      const addUser = httpsCallable(functions, "createNewUser");
-      addUser({ email, role: role?.label, roleID: role?.id, fullName, created_at})
+      //update user
+      const editUser = httpsCallable(functions, "updateUser");
+      editUser({ email, role: role?.label, roleID: role?.id, fullName, userID: user?.userID, status: user?.status, updated_at})
         .then((result) => {
           // Read result of the Cloud Function.
           const data = result.data;
           setLoading(false);
-          setName("");
-          setEmail("");
-          setRole("");
+          // setName("");
+          // setEmail("");
+          // setRole("");
 
           toast.success(data.message);
           //fetch users
@@ -155,7 +155,7 @@ const EditUser = () => {
             className="w-[82%]"
             onClick={(e) => userRegistration(e)}
           >
-            SAVE USER
+            EDIT USER
           </Button>
         </>
       );
@@ -164,12 +164,9 @@ const EditUser = () => {
 
   return (
     <div>
-      <div
-        onClick={handleOpen}
-        className="h-10 w-44 bg-blue-300 cursor-pointer rounded-full flex flex-row gap-1 justify-center text-white"
-      >
-        <Add className="mt-2 py-0.5" /> <p className="py-2">Create New User</p>
-      </div>
+      <IconButton onClick={handleOpen} className="flex justify-center">
+        <Edit className="text-red-500 text-xl cursor-pointer" />
+      </IconButton>
 
       <Modal
         open={open}
@@ -179,7 +176,7 @@ const EditUser = () => {
       >
         <Box sx={style} className="rounded-md">
           <div>
-            <h3 className="text-center text-xl py-4">Add New User</h3>
+            <h3 className="text-center text-xl py-4">Edit User Details</h3>
             <div>
               <div className="w-full py-2 flex justify-center">
                 <TextField

@@ -108,6 +108,8 @@ const AddEmployee = () => {
     } else {
       //start registration
       setLoading(true);
+      //employee number
+      const employeeNumber = "EMP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
       const dataRef = doc(collection(db, "employeesBucket"));
       await setDoc(dataRef, {
@@ -117,6 +119,7 @@ const AddEmployee = () => {
         gender,
         email,
         phone,
+        employeeNumber,
         designation: designation?.label,
         designationID: designation?.id,
         id: dataRef.id,
@@ -126,7 +129,7 @@ const AddEmployee = () => {
       })
         .then(() => {
           //
-          addEmployeeToPath(dataRef.id);
+          addEmployeeToPath({id: dataRef.id, employeeNumber});
         })
         .catch((error) => {
           setLoading(false);
@@ -136,7 +139,7 @@ const AddEmployee = () => {
     }
   };
 
-  const addEmployeeToPath = async (id) => {
+  const addEmployeeToPath = async ({id, employeeNumber}) => {
     //
     const dataRef = doc(db, "users", "employees", id, "public", "account", "info");
     await setDoc(dataRef, {
@@ -146,6 +149,7 @@ const AddEmployee = () => {
         gender,
         email,
         phone,
+        employeeNumber,
         designation: designation?.label,
         designationID: designation?.id,
         id: id,

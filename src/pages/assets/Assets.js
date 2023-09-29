@@ -138,6 +138,9 @@ const AssetStatus = ({ asset }) => {
       } this asset?`}
       okText="Yes"
       cancelText="No"
+      okButtonProps={{
+        className: "bg-blue-500",
+      }}
       onConfirm={changeStatus}
     >
       <Switch

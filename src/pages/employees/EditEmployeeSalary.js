@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { db } from "../../App";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button, MenuItem } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { addAdditionalInfo } from "../../features/employeeSlice";
+import { addAdditionalInfo, addEmployeesDetails } from "../../features/employeeSlice";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { Edit } from "@mui/icons-material";
@@ -28,7 +28,7 @@ const EditEmployeeSalary = ({ info }) => {
 
   const [amount, setAmount] = useState(info?.salary);
   const [paymentMode, setPayment] = useState(info?.paymentMode);
-  const [socialSecurity, setSocial] = useState(info?.socialSecurity);
+  const [socialSecurity, setSocial] = useState(info?.socialSecurity ? 2 : 1);
   const [ssn, setSSN] = useState(info?.ssn);
   const [paye, setPaye] = useState(info?.paye);
   const [loading, setLoading] = useState(false);
@@ -44,13 +44,13 @@ const EditEmployeeSalary = ({ info }) => {
       employeeID,
       "public",
       "account",
-      "additionalInfo"
+      "info"
     );
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const data = docSnap.data();
-      dispatch(addAdditionalInfo(data));
+      dispatch(addEmployeesDetails(data));
     } else {
       // docSnap.data() will be undefined in this case
       console.log("No such document!");
@@ -67,7 +67,7 @@ const EditEmployeeSalary = ({ info }) => {
     } else if (!socialSecurity) {
       toast.warning("Please select social security status");
     } else {
-      if (socialSecurity === "yes") {
+      if (socialSecurity == 2) {
         if (!ssn) {
           toast.warning("Please enter NSSF number");
         } else if (!paye) {
@@ -76,6 +76,10 @@ const EditEmployeeSalary = ({ info }) => {
           //start registration
           setLoading(true);
 
+          const nssfAmount = parseInt(amount) / 10;
+          const deductionAmount = parseInt(paye) + nssfAmount;
+          const netSalary = parseInt(amount) - deductionAmount;
+
           const dataRef = doc(
             db,
             "users",
@@ -83,24 +87,33 @@ const EditEmployeeSalary = ({ info }) => {
             employeeID,
             "public",
             "account",
-            "additionalInfo"
+            "info"
           );
-          await updateDoc(dataRef, {
-            salary: amount,
-            paymentMode,
-            socialSecurity,
-            ssn,
-            paye,
-          })
+          await updateDoc(
+            dataRef,
+            {
+              salary: parseInt(amount),
+              paymentMode: parseInt(paymentMode),
+              socialSecurity: true,
+              ssn,
+              nssfAmount,
+              deductionAmount,
+              netSalary,
+              paye: parseInt(paye),
+            },
+          )
             .then(() => {
-              setAmount("");
-              setPayment("");
-              setSocial("");
-              setSSN("");
-              setPaye("");
-              getEmployeeDetails();
-              toast.success("Salary info are updated successfully");
-              setLoading(false);
+              //update salary on bucket
+              updateEmployeeBucket({
+                salary: parseInt(amount),
+                paye: parseInt(paye),
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: true,
+                ssn,
+                nssfAmount,
+                deductionAmount,
+                netSalary,
+              });
             })
             .catch((error) => {
               // console.error("Error removing document: ", error.message);
@@ -119,24 +132,33 @@ const EditEmployeeSalary = ({ info }) => {
           employeeID,
           "public",
           "account",
-          "additionalInfo"
+          "info"
         );
-        await updateDoc(dataRef, {
-          salary: amount,
-          paymentMode,
-          socialSecurity,
-          ssn: "",
-          paye: "",
-        })
+        await updateDoc(
+          dataRef,
+          {
+            salary: parseInt(amount),
+            ssn: "",
+            paye: 0,
+            paymentMode: parseInt(paymentMode),
+            socialSecurity: false,
+            nssfAmount: 0,
+            deductionAmount: 0,
+            netSalary: parseInt(amount),
+          },
+        )
           .then(() => {
-            setAmount("");
-            setPayment("");
-            setSocial("");
-            setSSN("");
-            setPaye("");
-            getEmployeeDetails();
-            toast.success("Salary info are updated successfully");
-            setLoading(false);
+            //update salary on bucket
+            updateEmployeeBucket({
+              salary: parseInt(amount),
+              paye: 0,
+              paymentMode: parseInt(paymentMode),
+              socialSecurity: false,
+              ssn: "",
+              nssfAmount: 0,
+              deductionAmount: 0,
+              netSalary: parseInt(amount),
+            });
           })
           .catch((error) => {
             // console.error("Error removing document: ", error.message);
@@ -145,6 +167,41 @@ const EditEmployeeSalary = ({ info }) => {
           });
       }
     }
+  };
+
+  const updateEmployeeBucket = async ({
+    salary,
+    paye,
+    paymentMode,
+    socialSecurity,
+    ssn,
+    netSalary,
+    deductionAmount,
+    nssfAmount,
+  }) => {
+    const dataRef = doc(collection(db, "employeesBucket", employeeID));
+    await updateDoc(dataRef, {
+      salary,
+      paye,
+      paymentMode,
+      socialSecurity,
+      ssn,
+      netSalary,
+      deductionAmount,
+      nssfAmount,
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(() => {
+        //
+        getEmployeeDetails();
+        toast.success("Salary info are updated successfully");
+        setLoading(false);
+      })
+      .catch((error) => {
+        setLoading(false);
+        console.log("Error creating new employee:", error);
+        toast.error(error.message);
+      });
   };
 
   const renderButton = () => {
@@ -222,10 +279,10 @@ const EditEmployeeSalary = ({ info }) => {
                   value={paymentMode}
                   onChange={(e) => setPayment(e.target.value)}
                 >
-                  <MenuItem value={"once"}>
+                  <MenuItem value={1}>
                     Once (30th end of the month)
                   </MenuItem>
-                  <MenuItem value={"twice"}>Twice (15th and 30th)</MenuItem>
+                  <MenuItem value={2}>Twice (15th and 30th)</MenuItem>
                 </TextField>
               </div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
@@ -238,11 +295,11 @@ const EditEmployeeSalary = ({ info }) => {
                   value={socialSecurity}
                   onChange={(e) => setSocial(e.target.value)}
                 >
-                  <MenuItem value={"no"}>No</MenuItem>
-                  <MenuItem value={"yes"}>Yes</MenuItem>
+                  <MenuItem value={1}>No</MenuItem>
+                  <MenuItem value={2}>Yes</MenuItem>
                 </TextField>
               </div>
-              {socialSecurity === "yes" ? (
+              {socialSecurity == 2 ? (
                 <div className="w-full py-2 flex flex-row gap-2 justify-center">
                   <TextField
                     size="small"

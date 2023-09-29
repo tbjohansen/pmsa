@@ -1,18 +1,20 @@
 import React, { useEffect } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, getDocs, Timestamp } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { Popconfirm, Switch, Table } from "antd";
 import { addUsers, selectUsers } from "../../features/userSlice";
 import AddUser from "./AddUser";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import { getFunctions, httpsCallable } from "firebase/functions";
+import EditUser from "./EditUser";
 
 const columns = [
   {
     title: "#",
     dataIndex: "key",
     key: "key",
-    render: (text) => <>{text}</>,
+    render: (text) => <p>{text}</p>,
   },
   {
     title: "Full Name",
@@ -23,7 +25,7 @@ const columns = [
     title: "Email",
     dataIndex: "email",
     key: "email",
-    render: (text) => <>{text}</>,
+    render: (text) => <p>{text}</p>,
   },
   {
     title: "Role",
@@ -44,7 +46,7 @@ const columns = [
     key: "action",
     render: (_, user) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditUser user={user} /> */}
+        <EditUser user={user} />
         {/* <DeleteUser user={user} /> */}
       </p>
     ),
@@ -53,6 +55,7 @@ const columns = [
 
 const UserStatus = ({ user }) => {
   const dispatch = useDispatch();
+  const functions = getFunctions();
 
   const getUsers = async () => {
     let usersArray = [];
@@ -70,30 +73,29 @@ const UserStatus = ({ user }) => {
   };
 
   const changeStatus = async () => {
-    await updateDoc(doc(db, "userBucket", user?.id), {
-      status: !user.status,
-    })
-      .then(() => {
-        updateUserToPath(user.id);
-      })
-      .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        toast.error(error.message);
-      });
-  };
+    //update user status
+    const updated_at = Timestamp.fromDate(new Date());
 
-  const updateUserToPath = async (id) => {
-    // Add a new document with a generated id
-    await updateDoc(doc(db, "users", "admins", id, "public"), {
-      status: !user.status,
-    })
-      .then(() => {
+    const updateStatus = httpsCallable(functions, "updateUser");
+    updateStatus({ email: user?.email, role: user?.role, roleID: user?.roleID, fullName: user?.fullName, userID: user?.userID, status: !user?.status, updated_at})
+      .then((result) => {
+        // Read result of the Cloud Function.
+        const data = result.data;
+        // setName("");
+        // setEmail("");
+        // setRole("");
+
+        toast.success(data.message);
+        //fetch users
         getUsers();
-        toast.success("User status is changed successfully");
       })
       .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        toast.error(error.message);
+        // Getting the Error details.
+        const code = error.code;
+        const message = error.message;
+        const details = error.details;
+        console.log(error);
+        toast.error(message);
       });
   };
 
@@ -105,6 +107,9 @@ const UserStatus = ({ user }) => {
       } this user?`}
       okText="Yes"
       cancelText="No"
+      okButtonProps={{
+        className: "bg-blue-500",
+      }}
       onConfirm={changeStatus}
     >
       <Switch

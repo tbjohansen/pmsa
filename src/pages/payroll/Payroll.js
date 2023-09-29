@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button, DatePicker, Segmented, Space, Table, Tag } from "antd";
 import moment from "moment";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import PropTypes from "prop-types";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
+import { collection, getDocs } from "firebase/firestore";
+import { addEmployees, selectEmployees } from "../../features/employeeSlice";
+import { db } from "../../App";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -43,7 +46,7 @@ const columns = [
     title: "#",
     dataIndex: "key",
     key: "key",
-    render: (text) => <>{text}</>,
+    render: (text) => <p>{text}</p>,
   },
   {
     title: "Employee Name",
@@ -116,7 +119,7 @@ const MonthSalaries = () => {
 const Payroll = () => {
   const dispatch = useDispatch();
 
-  const [value, setValue] = React.useState(0);
+  const [value, setValue] = useState(0);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -130,12 +133,60 @@ const Payroll = () => {
   const [monthValue, setMonthValue] = useState(monthNumber);
   const [yearValue, setYear] = useState(year);
 
+
+  useEffect(() => {
+    const getEmployees = async () => {
+      let employeesArray = [];
+
+      const querySnapshot = await getDocs(collection(db, "employeesBucket"));
+      querySnapshot.forEach((doc) => {
+        //set data
+        const data = doc.data();
+        employeesArray.push(data);
+      });
+
+      if (employeesArray.length > 0) {
+        dispatch(addEmployees(employeesArray));
+      }
+    };
+
+    getEmployees();
+  })
+
   // const monthExpenses = expenses.filter((expense) => {
   //   return (
   //     expense.month === parseInt(monthValue) &&
   //     moment(expense.expense_date).format("YYYY") === yearValue.toString()
   //   );
   // });
+
+  const employees = useSelector(selectEmployees);
+  const activeEmployees = employees.filter((employee) => employee.status == true);
+
+  const totalBasicSalary = activeEmployees.reduce(
+    (sum, employee) => sum + employee.salary,
+    0
+  );
+
+  const totalNetSalary = activeEmployees.reduce(
+    (sum, employee) => sum + employee.netSalary,
+    0
+  );
+
+  const totalDeductions = activeEmployees.reduce(
+    (sum, employee) => sum + employee.deductionAmount,
+    0
+  );
+
+  const totalNSSFDeductions = activeEmployees.reduce(
+    (sum, employee) => sum + employee.nssfAmount,
+    0
+  );
+
+  const totalPAYEAmount = activeEmployees.reduce(
+    (sum, employee) => sum + employee.paye,
+    0
+  );
 
   let formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -211,21 +262,29 @@ const Payroll = () => {
             <div className="w-[50%] px-4 py-4 border-r-2 border-zinc-300 border-dashed">
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Employees:</p>
-                <p className="capitalize">102</p>
+                <p className="capitalize">{activeEmployees?.length || 0}</p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Basic Salary Amount:</p>
-                <p className="capitalize">TZS 22,72000.00</p>
+                <p className="capitalize">{formatter.format(totalBasicSalary)}</p>
               </div>
               <div className="flex flex-row gap-2 py-1">
-                <p>Total Deductions Amount:</p>
-                <p className="capitalize">TZS 2,000,000.00</p>
+                <p>Total PAYE Employees Amount:</p>
+                <p className="capitalize">{formatter.format(totalPAYEAmount)}</p>
+              </div>
+              <div className="flex flex-row gap-2 py-1">
+                <p>Total NSSF Deductions Amount:</p>
+                <p className="capitalize">{formatter.format(totalNSSFDeductions)}</p>
               </div>
             </div>
             <div className="w-[50%] px-4 py-4">
+            <div className="flex flex-row gap-2 py-1">
+                <p>Total Deductions Amount:</p>
+                <p className="capitalize">{formatter.format(totalDeductions)}</p>
+              </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Net Salary Amount:</p>
-                <p className="capitalize">TZS 20,140,000.00</p>
+                <p className="capitalize">{formatter.format(totalNetSalary)}</p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Net Salary Amount (15th):</p>
