@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Button, DatePicker, Segmented, Space, Table, Tag } from "antd";
+import {
+  Button,
+  DatePicker,
+  Popconfirm,
+  Segmented,
+  Space,
+  Table,
+  Tag,
+} from "antd";
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import PropTypes from "prop-types";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 import { addEmployees, selectEmployees } from "../../features/employeeSlice";
 import { db } from "../../App";
+import { addSalaries, selectSalaries } from "../../features/payrollSlice";
+import { toast } from "react-hot-toast";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -56,7 +66,7 @@ const columns = [
         <p>
           {payroll?.firstName} {payroll?.middleName} {payroll?.lastName}
         </p>
-        <p>{payroll?.role}</p>
+        <p>{payroll?.designation}</p>
       </>
     ),
   },
@@ -65,7 +75,7 @@ const columns = [
     key: "basicSalary",
     render: (_, payroll) => (
       <>
-        <p>{payroll?.basicSalary}</p>
+        <p>{payroll?.salary}</p>
       </>
     ),
   },
@@ -74,7 +84,7 @@ const columns = [
     key: "deductions",
     render: (_, payroll) => (
       <>
-        <p>{payroll?.deductions}</p>
+        <p>{payroll?.deductionAmount}</p>
       </>
     ),
   },
@@ -88,9 +98,22 @@ const columns = [
     ),
   },
   {
+    title: "Payroll",
+    key: "payroll",
+    render: (_, payroll) => (
+      <>
+        <RemovePayroll employee={payroll} />
+      </>
+    ),
+  },
+  {
     title: "Payment",
     key: "status",
-    render: (_, payroll) => <></>,
+    render: (_, payroll) => (
+      <>
+        <PaymentStatus payroll={payroll} />
+      </>
+    ),
   },
   {
     title: "Actions",
@@ -101,14 +124,107 @@ const columns = [
   },
 ];
 
-const MonthSalaries = () => {
-  const sortedPayroll = [];
+const PaymentStatus = ({ payroll }) => {
+  if (payroll?.payment === "full") {
+    return <Tag color={"green"}>Full Paid</Tag>;
+  } else if (payroll?.payment === "half") {
+    return <Tag color={"green"}>Half Paid</Tag>;
+  } else {
+    return <Tag color={"blue"}>Not Paid</Tag>;
+  }
+};
 
+const RemovePayroll = ({ employee }) => {
+  const dispatch = useDispatch();
+
+  const month = moment().format("MMMM");
+  const monthNumber = moment().month(month).format("M");
+  const year = moment().format("YYYY");
+
+  const getEmployees = async () => {
+    let salaryArray = [];
+
+    const querySnapshot = await getDocs(
+      collection(db, "salaries", year, monthNumber)
+    );
+    querySnapshot.forEach((doc) => {
+      //set data
+      const data = doc.data();
+      salaryArray.push(data);
+    });
+
+    if (salaryArray.length > 0) {
+      dispatch(addSalaries(salaryArray));
+    }
+  };
+
+  const changeStatus = async () => {
+    await deleteDoc(doc(db, "salaries", year, month, employee.id))
+      .then(() => {
+        updateEmployeeToPath(employee.id);
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+      });
+  };
+
+  const updateEmployeeToPath = async (id) => {
+    // Add a new document with a generated id
+    await updateDoc(
+      doc(db, "users", "employees", id, "public", "account", "info"),
+      {
+        payroll: false,
+      }
+    )
+      .then(async () => {
+        await updateDoc(doc(db, "employeesBucket", employee?.id), {
+          payroll: false,
+        })
+          .then(() => {
+            getEmployees();
+            toast.success(
+              "Employee is removed to this month payroll successfully"
+            );
+          })
+          .catch((error) => {
+            // console.error("Error removing document: ", error.message);
+            toast.error(error.message);
+          });
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+      });
+  };
+
+  return (
+    <Popconfirm
+      title=""
+      description={`Are you sure to remove this employee on payroll this month?`}
+      okText="Yes"
+      cancelText="No"
+      okButtonProps={{
+        className: "bg-blue-500",
+      }}
+      onConfirm={changeStatus}
+    >
+      <button
+        type="button"
+        className="px-4 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+      >
+        Remove
+      </button>
+    </Popconfirm>
+  );
+};
+
+const MonthSalaries = ({ employees }) => {
   return (
     <div>
       <Table
         columns={columns}
-        dataSource={sortedPayroll}
+        dataSource={employees}
         size="middle"
         pagination={{ defaultPageSize: 6, size: "middle" }}
       />
@@ -133,7 +249,6 @@ const Payroll = () => {
   const [monthValue, setMonthValue] = useState(monthNumber);
   const [yearValue, setYear] = useState(year);
 
-
   useEffect(() => {
     const getEmployees = async () => {
       let employeesArray = [];
@@ -150,8 +265,26 @@ const Payroll = () => {
       }
     };
 
+    const getMonthSalaries = async () => {
+      let salaryArray = [];
+
+      const querySnapshot = await getDocs(
+        collection(db, "salaries", year, monthNumber)
+      );
+      querySnapshot.forEach((doc) => {
+        //set data
+        const data = doc.data();
+        salaryArray.push(data);
+      });
+
+      if (salaryArray.length > 0) {
+        dispatch(addSalaries(salaryArray));
+      }
+    };
+
     getEmployees();
-  })
+    getMonthSalaries();
+  });
 
   // const monthExpenses = expenses.filter((expense) => {
   //   return (
@@ -160,8 +293,18 @@ const Payroll = () => {
   //   );
   // });
 
-  const employees = useSelector(selectEmployees);
-  const activeEmployees = employees.filter((employee) => employee.status == true);
+  const employees = useSelector(selectSalaries);
+  const employeesList = employees
+    .slice()
+    .sort((a, b) => b.created_at - a.created_at);
+  const sortedEmployees = employeesList.map((employee, index) => {
+    const key = index + 1;
+    return { ...employee, key };
+  });
+  // const employees = useSelector(selectEmployees);
+  const activeEmployees = employees.filter(
+    (employee) => employee.status == true
+  );
 
   const totalBasicSalary = activeEmployees.reduce(
     (sum, employee) => sum + employee.salary,
@@ -266,21 +409,29 @@ const Payroll = () => {
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Basic Salary Amount:</p>
-                <p className="capitalize">{formatter.format(totalBasicSalary)}</p>
+                <p className="capitalize">
+                  {formatter.format(totalBasicSalary)}
+                </p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total PAYE Employees Amount:</p>
-                <p className="capitalize">{formatter.format(totalPAYEAmount)}</p>
+                <p className="capitalize">
+                  {formatter.format(totalPAYEAmount)}
+                </p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total NSSF Deductions Amount:</p>
-                <p className="capitalize">{formatter.format(totalNSSFDeductions)}</p>
+                <p className="capitalize">
+                  {formatter.format(totalNSSFDeductions)}
+                </p>
               </div>
             </div>
             <div className="w-[50%] px-4 py-4">
-            <div className="flex flex-row gap-2 py-1">
+              <div className="flex flex-row gap-2 py-1">
                 <p>Total Deductions Amount:</p>
-                <p className="capitalize">{formatter.format(totalDeductions)}</p>
+                <p className="capitalize">
+                  {formatter.format(totalDeductions)}
+                </p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Net Salary Amount:</p>
@@ -323,7 +474,7 @@ const Payroll = () => {
               </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>
-              <MonthSalaries />
+              <MonthSalaries employees={sortedEmployees} />
             </CustomTabPanel>
             <CustomTabPanel value={value} index={1}></CustomTabPanel>
             <CustomTabPanel value={value} index={2}></CustomTabPanel>

@@ -130,6 +130,8 @@ const EmployeeLoans = () => {
 
       if (loansArray.length > 0) {
         dispatch(addEmployeesLoans(loansArray));
+      } else {
+        dispatch(addEmployeesLoans([]));
       }
     };
 

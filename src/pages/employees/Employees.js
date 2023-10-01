@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Popconfirm, Switch, Table } from "antd";
+import { Popconfirm, Switch, Table, Tag } from "antd";
 import {
   addEmployees,
   addEmployeesDetails,
@@ -14,6 +14,7 @@ import EditEmployee from "./EditEmployee";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { IconButton } from "@mui/material";
+import moment from "moment";
 
 const columns = [
   {
@@ -65,6 +66,19 @@ const columns = [
     ),
   },
   {
+    title: "Payroll",
+    key: "payroll",
+    render: (_, employee) => (
+      <>
+       {employee?.salary? <> {employee?.payroll ? (
+          <Tag color={"green"}>Registered</Tag>
+        ) : (
+          <RegisterPayroll employee={employee} />
+        )}</> : <p className="text-xs">Add salary details</p>}
+      </>
+    ),
+  },
+  {
     title: "Actions",
     key: "action",
     render: (_, employee) => (
@@ -91,6 +105,91 @@ const ViewEmployee = ({ employee }) => {
         <RemoveRedEye className="text-red-500 text-xl cursor-pointer" />
       </IconButton>
     </p>
+  );
+};
+
+const RegisterPayroll = ({ employee }) => {
+  const dispatch = useDispatch();
+
+  const month = moment().format("MMMM");
+  const monthNumber = moment().month(month).format("M");
+  const year = moment().format("YYYY");
+
+  const getEmployees = async () => {
+    let employeesArray = [];
+
+    const querySnapshot = await getDocs(collection(db, "employeesBucket"));
+    querySnapshot.forEach((doc) => {
+      //set data
+      const data = doc.data();
+      employeesArray.push(data);
+    });
+
+    if (employeesArray.length > 0) {
+      dispatch(addEmployees(employeesArray));
+    }
+  };
+
+  const changeStatus = async () => {
+    await setDoc(doc(db, "salaries", year, monthNumber, employee.id), {
+      ...employee,
+    })
+      .then(() => {
+        updateEmployeeToPath(employee.id);
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+      });
+  };
+
+  const updateEmployeeToPath = async (id) => {
+    // Add a new document with a generated id
+    await updateDoc(
+      doc(db, "users", "employees", id, "public", "account", "info"),
+      {
+        payroll: true,
+      }
+    )
+      .then(async () => {
+        await updateDoc(doc(db, "employeesBucket", employee?.id), {
+          payroll: true,
+        })
+          .then(() => {
+            getEmployees();
+            toast.success(
+              "Employee is added to this month payroll successfully"
+            );
+          })
+          .catch((error) => {
+            // console.error("Error removing document: ", error.message);
+            toast.error(error.message);
+          });
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+      });
+  };
+
+  return (
+    <Popconfirm
+      title=""
+      description={`Are you sure to add this employee on payroll this month?`}
+      okText="Yes"
+      cancelText="No"
+      okButtonProps={{
+        className: "bg-blue-500",
+      }}
+      onConfirm={changeStatus}
+    >
+      <button
+        type="button"
+        className="px-4 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+      >
+        Register
+      </button>
+    </Popconfirm>
   );
 };
 

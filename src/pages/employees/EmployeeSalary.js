@@ -25,7 +25,7 @@ const EmployeeSalary = ({ info }) => {
           <div className="w-[50%]">
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Salary Amount</p>
-              <p className="w-[50%]">TZS {formatter.format(info?.salary)}</p>
+              <p className="w-[50%]">TZS {formatter.format(info?.salary || 0)}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Payment Mode</p>
@@ -48,23 +48,23 @@ const EmployeeSalary = ({ info }) => {
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">NSSF Amount</p>
               <p className="w-[50%]">
-                TZS {formatter.format(info?.nssfAmount)}
+                TZS {formatter.format(info?.nssfAmount || 0)}
               </p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">PAYE Amount</p>
-              <p className="w-[50%]">TZS {formatter.format(info?.paye)}</p>
+              <p className="w-[50%]">TZS {formatter.format(info?.paye || 0)}</p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Total Deductions</p>
               <p className="w-[50%] capitalize">
-                {formatter.format(info?.deductionAmount)}
+                TZS {formatter.format(info?.deductionAmount || 0)}
               </p>
             </div>
             <div className="flex flex-row gap-2 py-2">
               <p className="w-[50%]">Net Salary</p>
               <p className="w-[50%] capitalize">
-                {formatter.format(info?.netSalary)}
+                TZS {formatter.format(info?.netSalary || 0)}
               </p>
             </div>
           </div>

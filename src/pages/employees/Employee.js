@@ -151,7 +151,8 @@ const Employee = () => {
       } else {
         // docSnap.data() will be undefined in this case
         console.log("No such document!");
-      }
+        dispatch(addEmployeesDetails({}));
+      } 
     };
 
     const getEmployeeInfo = async () => {
@@ -172,6 +173,7 @@ const Employee = () => {
       } else {
         // docSnap.data() will be undefined in this case
         console.log("No such document!");
+        dispatch(addAdditionalInfo({}))
       }
     };
 

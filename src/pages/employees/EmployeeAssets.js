@@ -138,6 +138,8 @@ const EmployeeAssets = () => {
 
       if (assetsArray.length > 0) {
         dispatch(addEmployeesAssets(assetsArray));
+      } else {
+        dispatch(addEmployeesAssets([]));
       }
     };
 
