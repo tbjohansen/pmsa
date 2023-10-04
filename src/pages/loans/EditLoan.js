@@ -119,15 +119,15 @@ const EditLoan = ({loan}) => {
     e.preventDefault();
 
     if (!employee) {
-      toast.warning("Please select employee");
+      toast.error("Please select employee");
     } else if (!amount) {
-      toast.warning("Please enter loan amount");
+      toast.error("Please enter loan amount");
     } else if (!date) {
-      toast.warning("Please select date");
+      toast.error("Please select date");
     } else if (!deductionTime) {
-      toast.warning("Please enter deduction months");
+      toast.error("Please enter deduction months");
     } else if (!deduction) {
-      toast.warning("Please enter deduction amount");
+      toast.error("Please enter deduction amount");
     } else {
       //start registration
       setLoading(true);

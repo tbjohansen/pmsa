@@ -52,7 +52,7 @@ const EditDesignation = ({ designation }) => {
     e.preventDefault();
 
     if (!name) {
-      toast.warning("Please enter designation name");
+      toast.error("Please enter designation name");
     } else {
       //start registration
       setLoading(true);

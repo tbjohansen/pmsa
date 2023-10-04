@@ -6,12 +6,14 @@ import {
   doc,
   getDocs,
   Timestamp,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { Autocomplete, Button } from "@mui/material";
+import { Autocomplete, Button, MenuItem } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { addLoans } from "../../features/loanSlice";
@@ -23,7 +25,7 @@ import { isNumber } from "lodash";
 
 const style = {
   position: "absolute",
-  top: "45%",
+  top: "48%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 700,
@@ -43,6 +45,7 @@ const AddLoan = () => {
   const [deductionTime, setDeductionTime] = useState("");
   const [deduction, setDeduction] = useState(0);
   const [deductionAmount, setDeductionAmount] = useState("");
+  const [salaryDeduction, setSalaryDeduction] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -50,7 +53,6 @@ const AddLoan = () => {
 
   const user = auth.currentUser;
   const uid = user?.uid;
-  const displayName = user?.displayName;
 
   useEffect(() => {
     const getEmployees = async () => {
@@ -119,47 +121,55 @@ const AddLoan = () => {
     e.preventDefault();
 
     if (!employee) {
-      toast.warning("Please select employee");
+      toast.error("Please select employee");
     } else if (!amount) {
-      toast.warning("Please enter loan amount");
+      toast.error("Please enter loan amount");
     } else if (!date) {
-      toast.warning("Please select date");
+      toast.error("Please select date");
     } else if (!deductionTime) {
-      toast.warning("Please enter deduction months");
+      toast.error("Please enter deduction months");
     } else if (!deduction) {
-      toast.warning("Please enter deduction amount");
+      toast.error("Please enter deduction amount");
+    } else if (employee?.data?.paymentMode == 2 && !salaryDeduction) {
+      toast.error("Please select salary for deduction");
     } else {
       //start registration
       setLoading(true);
-      try {
-        // Add a new document with a generated id
-        const dataRef = doc(collection(db, "loans"));
-        await setDoc(dataRef, {
-          employeeID: employee?.data?.id,
-          employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
-          employeeDesignation: employee?.data?.designation,
-          date: Timestamp.fromDate(new Date(date)),
-          amount: parseInt(amount),
-          deductionMonths: deductionTime,
-          deductionAmount: parseInt(deduction),
-          description,
-          id: dataRef.id,
-          paid: false,
-          paidAmount: 0,
-          debt: parseInt(amount),
-          created_at: Timestamp.fromDate(new Date()),
-          updated_at: Timestamp.fromDate(new Date()),
-        })
-          .then(() => {
-            setLoanToEmployee({ loanID: dataRef.id });
+      //check if employee has salary details
+      if (employee?.data?.salary) {
+        try {
+          // Add a new document with a generated id
+          const dataRef = doc(collection(db, "loans"));
+          await setDoc(dataRef, {
+            employeeID: employee?.data?.id,
+            employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+            employeeDesignation: employee?.data?.designation,
+            date: Timestamp.fromDate(new Date(date)),
+            amount: parseInt(amount),
+            deductionMonths: deductionTime,
+            deductionAmount: parseInt(deduction),
+            description,
+            id: dataRef.id,
+            paid: false,
+            paidAmount: 0,
+            debt: parseInt(amount),
+            created_at: Timestamp.fromDate(new Date()),
+            updated_at: Timestamp.fromDate(new Date()),
           })
-          .catch((error) => {
-            // console.error("Error removing document: ", error.message);
-            toast.error(error.message);
-            setLoading(false);
-          });
-      } catch (error) {
-        toast.error(error.message);
+            .then(() => {
+              setLoanToEmployee({ loanID: dataRef.id });
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+              setLoading(false);
+            });
+        } catch (error) {
+          toast.error(error.message);
+          setLoading(false);
+        }
+      } else {
+        toast.error("Sorry! Add employee salary details first to proceed");
         setLoading(false);
       }
     }
@@ -194,17 +204,12 @@ const AddLoan = () => {
         updated_at: Timestamp.fromDate(new Date()),
       })
         .then(() => {
-          setEmployee("");
-          setAmount("");
-          setDate(null);
-          setDeductionTime("");
-          setDeduction(0);
-          setDeductionAmount("");
-          setDescription("");
-
-          toast.success("Employee loan is saved successfully");
-
-          getLoans();
+          updateEmployeeSalaryDetails({
+            employeeID: employee?.id,
+            deductionAmount: parseInt(deduction),
+            loanAmount: parseInt(amount),
+            salaryDeduction,
+          });
         })
         .catch((error) => {
           // console.error("Error removing document: ", error.message);
@@ -214,6 +219,66 @@ const AddLoan = () => {
     } catch (error) {
       console.log(error.message);
     }
+  };
+
+  const updateEmployeeSalaryDetails = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    salaryDeduction,
+  }) => {
+    const dataRef = doc(
+      db,
+      "users",
+      "employees",
+      employeeID,
+      "public",
+      "account",
+      "info"
+    );
+    await updateDoc(dataRef, {
+      loan: increment(loanAmount),
+      loanStatus: true,
+      loanDeduction: deductionAmount,
+      salaryToDeductLoan: salaryDeduction,
+      netSalary: increment(-deductionAmount),
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(async () => {
+        //update loan details on employee on bucket
+        const dataRef = doc(collection(db, "employeesBucket", employeeID));
+        await updateDoc(dataRef, {
+          loan: increment(loanAmount),
+          loanStatus: true,
+          loanDeduction: deductionAmount,
+          salaryToDeductLoan: salaryDeduction,
+          netSalary: increment(-deductionAmount),
+          updated_at: Timestamp.fromDate(new Date()),
+        })
+          .then(() => {
+            //
+            setEmployee("");
+            setAmount("");
+            setDate(null);
+            setDeductionTime("");
+            setDeduction(0);
+            setDeductionAmount("");
+            setDescription("");
+
+            getLoans();
+
+            toast.success("Employee loan is saved successfully");
+          })
+          .catch((error) => {
+            setLoading(false);
+            toast.error(error.message);
+          });
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+        setLoading(false);
+      });
   };
 
   const renderButton = () => {
@@ -326,6 +391,24 @@ const AddLoan = () => {
                   onChange={(e) => setDeduction(e.target.value)}
                 />
               </div>
+              {employee?.data?.paymentMode == 2 ? (
+                <div className="w-full py-2 flex justify-center">
+                  <TextField
+                    id="outlined-select-currency"
+                    size="small"
+                    select
+                    label="Select Salary For Deduction"
+                    variant="outlined"
+                    className="w-[92%]"
+                    value={salaryDeduction}
+                    onChange={(e) => setSalaryDeduction(e.target.value)}
+                  >
+                    <MenuItem value={1}>Mid of the month salary</MenuItem>
+                    <MenuItem value={2}>End of the month salary</MenuItem>
+                    <MenuItem value={3}>Both mid and end of the month</MenuItem>
+                  </TextField>
+                </div>
+              ) : null}
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   id="outlined-multiline-static"

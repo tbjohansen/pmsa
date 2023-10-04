@@ -80,13 +80,13 @@ const AddPrimaryEmergencyContacts = () => {
     e.preventDefault();
 
     if (!name) {
-      toast.warning("Please enter full name");
+      toast.error("Please enter full name");
     } else if (!address) {
-      toast.warning("Please enter address");
+      toast.error("Please enter address");
     } else if (!relation) {
-      toast.warning("Please select relation");
+      toast.error("Please select relation");
     } else if (!phone) {
-      toast.warning("Please enter phone number");
+      toast.error("Please enter phone number");
     } else {
       //start registration
       setLoading(true);

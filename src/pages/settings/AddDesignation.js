@@ -57,7 +57,7 @@ const AddDesignation = () => {
     e.preventDefault();
 
     if (!name) {
-      toast.warning("Please enter deisgnation name");
+      toast.error("Please enter deisgnation name");
     } else {
       //start registration
       setLoading(true);

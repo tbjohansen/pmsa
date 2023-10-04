@@ -90,13 +90,13 @@ const AddAsset = () => {
     e.preventDefault();
 
     if (!assetType) {
-      toast.warning("Please select asset type");
+      toast.error("Please select asset type");
     } else if (!assetName) {
-      toast.warning("Please add asset name");
+      toast.error("Please add asset name");
     } else if (!assetNumber) {
-      toast.warning("Please add asset number");
+      toast.error("Please add asset number");
     } else if (!assetAmount) {
-      toast.warning("Please add asset cost");
+      toast.error("Please add asset cost");
     } else {
       //start registration
       setLoading(true);

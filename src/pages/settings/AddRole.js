@@ -57,7 +57,7 @@ const AddRole = () => {
     e.preventDefault();
 
     if (!name) {
-      toast.warning("Please enter role name");
+      toast.error("Please enter role name");
     } else {
       //start registration
       setLoading(true);

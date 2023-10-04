@@ -61,9 +61,9 @@ const Profile = () => {
     e.preventDefault();
 
     if (!newPassword) {
-      toast.warning("Please enter new password");
+      toast.error("Please enter new password");
     } else if (!confirmPassword) {
-      toast.warning("Please enter confirm password");
+      toast.error("Please enter confirm password");
     } else {
       //start registration
       setLoading(true);
@@ -129,7 +129,7 @@ const Profile = () => {
 
   return (
     <div className="w-[100%] flex flex-row justify-center px-4 py-8">
-      <div className="w-[40%] flex flex-col justify-center max-w-xs p-6 shadow-md rounded-xl sm:px-12 bg-[#fcf8f8] ">
+      <div className="w-[40%] flex flex-col justify-center max-w-xs p-6 shadow-md rounded-xl sm:px-12 bg-[#EBD1D1] ">
         <div className="w-32 h-32 mx-auto rounded-full bg-gray-500 aspect-square"></div>
         <div className="space-y-4 text-center divide-y divide-gray-300">
           <div className="my-2 space-y-1">

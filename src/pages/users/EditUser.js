@@ -91,11 +91,11 @@ const EditUser = ({user}) => {
     e.preventDefault();
 
     if (!fullName) {
-      toast.warning("Please enter full name");
+      toast.error("Please enter full name");
     } else if (!email) {
-      toast.warning("Please enter email");
+      toast.error("Please enter email");
     } else if (!role) {
-      toast.warning("Please select role");
+      toast.error("Please select role");
     } else {
       //start registration
       setLoading(true);

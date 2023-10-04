@@ -12,11 +12,19 @@ import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import PropTypes from "prop-types";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
-import { collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
-import { addEmployees, selectEmployees } from "../../features/employeeSlice";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
+import { addEmployees } from "../../features/employeeSlice";
 import { db } from "../../App";
 import { addSalaries, selectSalaries } from "../../features/payrollSlice";
 import { toast } from "react-hot-toast";
+import MidMonthPayroll from "./MidMonthPayroll";
+import EndMonthPayroll from "./EndMonthPayroll";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -51,6 +59,8 @@ function a11yProps(index) {
   };
 }
 
+const formatter = new Intl.NumberFormat("en-US");
+
 const columns = [
   {
     title: "#",
@@ -75,7 +85,7 @@ const columns = [
     key: "basicSalary",
     render: (_, payroll) => (
       <>
-        <p>{payroll?.salary}</p>
+        <p>TZS {formatter.format(payroll?.salary || 0)}</p>
       </>
     ),
   },
@@ -84,7 +94,7 @@ const columns = [
     key: "deductions",
     render: (_, payroll) => (
       <>
-        <p>{payroll?.deductionAmount}</p>
+        <p>TZS {formatter.format(payroll?.deductionAmount || 0)}</p>
       </>
     ),
   },
@@ -93,7 +103,7 @@ const columns = [
     key: "netSalary",
     render: (_, payroll) => (
       <>
-        <p>{payroll?.netSalary}</p>
+        <p>TZS {formatter.format(payroll?.netSalary || 0)}</p>
       </>
     ),
   },
@@ -155,18 +165,24 @@ const RemovePayroll = ({ employee }) => {
 
     if (salaryArray.length > 0) {
       dispatch(addSalaries(salaryArray));
+    } else {
+      dispatch(addSalaries([]));
     }
   };
 
   const changeStatus = async () => {
-    await deleteDoc(doc(db, "salaries", year, month, employee.id))
-      .then(() => {
-        updateEmployeeToPath(employee.id);
-      })
-      .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        toast.error(error.message);
-      });
+    if (employee?.payment !== "none") {
+      await deleteDoc(doc(db, "salaries", year, monthNumber, employee?.id))
+        .then(() => {
+          updateEmployeeToPath(employee.id);
+        })
+        .catch((error) => {
+          // console.error("Error removing document: ", error.message);
+          toast.error(error.message);
+        });
+    } else {
+      toast.custom("Sorry! Employee can't be removed on this month payroll");
+    }
   };
 
   const updateEmployeeToPath = async (id) => {
@@ -219,14 +235,23 @@ const RemovePayroll = ({ employee }) => {
   );
 };
 
-const MonthSalaries = ({ employees }) => {
+const MonthSalaries = () => {
+  const employees = useSelector(selectSalaries);
+  const employeesList = employees
+    .slice()
+    .sort((a, b) => b.created_at - a.created_at);
+  const sortedEmployees = employeesList.map((employee, index) => {
+    const key = index + 1;
+    return { ...employee, key };
+  });
+
   return (
     <div>
       <Table
         columns={columns}
-        dataSource={employees}
+        dataSource={sortedEmployees}
         size="middle"
-        pagination={{ defaultPageSize: 6, size: "middle" }}
+        pagination={{ defaultPageSize: 10, size: "middle" }}
       />
     </div>
   );
@@ -301,32 +326,51 @@ const Payroll = () => {
     const key = index + 1;
     return { ...employee, key };
   });
+
   // const employees = useSelector(selectEmployees);
-  const activeEmployees = employees.filter(
-    (employee) => employee.status == true
+  // const activeEmployees = employees.filter(
+  //   (employee) => employee.status == true
+  // );
+
+  const midMonthEmployees = employees.filter(
+    (employee) => employee.paymentMode == 2
   );
 
-  const totalBasicSalary = activeEmployees.reduce(
+  const endMonthEmployees = employees.filter(
+    (employee) => employee.paymentMode == 1
+  );
+
+  const midMonthSalary = midMonthEmployees.reduce(
+    (sum, employee) => sum + employee.netSalary / 2,
+    0
+  );
+
+  const endMonthSalary = endMonthEmployees.reduce(
+    (sum, employee) => sum + employee.netSalary / 2,
+    0
+  );
+
+  const totalBasicSalary = sortedEmployees.reduce(
     (sum, employee) => sum + employee.salary,
     0
   );
 
-  const totalNetSalary = activeEmployees.reduce(
+  const totalNetSalary = sortedEmployees.reduce(
     (sum, employee) => sum + employee.netSalary,
     0
   );
 
-  const totalDeductions = activeEmployees.reduce(
+  const totalDeductions = sortedEmployees.reduce(
     (sum, employee) => sum + employee.deductionAmount,
     0
   );
 
-  const totalNSSFDeductions = activeEmployees.reduce(
+  const totalNSSFDeductions = sortedEmployees.reduce(
     (sum, employee) => sum + employee.nssfAmount,
     0
   );
 
-  const totalPAYEAmount = activeEmployees.reduce(
+  const totalPAYEAmount = sortedEmployees.reduce(
     (sum, employee) => sum + employee.paye,
     0
   );
@@ -405,7 +449,7 @@ const Payroll = () => {
             <div className="w-[50%] px-4 py-4 border-r-2 border-zinc-300 border-dashed">
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Employees:</p>
-                <p className="capitalize">{activeEmployees?.length || 0}</p>
+                <p className="capitalize">{sortedEmployees?.length || 0}</p>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Basic Salary Amount:</p>
@@ -439,14 +483,18 @@ const Payroll = () => {
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Net Salary Amount (15th):</p>
-                <p className="capitalize">TZS 10,72000.00</p>
+                <p className="capitalize">
+                  {formatter.format(midMonthSalary || 0)}
+                </p>
                 <Tag color={"green"} className="text-sm">
                   Paid
                 </Tag>
               </div>
               <div className="flex flex-row gap-2 py-1">
                 <p>Net Salary Amount (30th):</p>
-                <p className="capitalize">TZS 10,72000.00</p>
+                <p className="capitalize">
+                  {formatter.format(endMonthSalary || 0)}
+                </p>
                 <Tag color={"red"} className="text-sm">
                   Not Paid
                 </Tag>
@@ -468,16 +516,24 @@ const Payroll = () => {
                 aria-label="basic tabs example"
                 //   sx={{ bgcolor: "#d8b4fe" }}
               >
-                <Tab label="MONTH SALARIES" {...a11yProps(0)} />
-                <Tab label="MID OF THE MONTH " {...a11yProps(1)} />
-                <Tab label="END OF THE MONTH" {...a11yProps(2)} />
+                <Tab label="MONTH PAYROLL" {...a11yProps(0)} />
+                <Tab label="MID OF THE MONTH PAYROLL" {...a11yProps(1)} />
+                <Tab label="END OF THE MONTH PAYROLL" {...a11yProps(2)} />
+                <Tab label="MID OF THE MONTH SALARIES" {...a11yProps(3)} />
+                <Tab label="END OF THE MONTH SALARIES" {...a11yProps(4)} />
               </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>
-              <MonthSalaries employees={sortedEmployees} />
+              <MonthSalaries />
             </CustomTabPanel>
-            <CustomTabPanel value={value} index={1}></CustomTabPanel>
-            <CustomTabPanel value={value} index={2}></CustomTabPanel>
+            <CustomTabPanel value={value} index={1}>
+              <MidMonthPayroll />
+            </CustomTabPanel>
+            <CustomTabPanel value={value} index={2}>
+              <EndMonthPayroll employees={endMonthEmployees} />
+            </CustomTabPanel>
+            <CustomTabPanel value={value} index={3}></CustomTabPanel>
+            <CustomTabPanel value={value} index={4}></CustomTabPanel>
           </Box>
         </div>
       </div>

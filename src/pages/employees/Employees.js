@@ -132,7 +132,7 @@ const RegisterPayroll = ({ employee }) => {
 
   const changeStatus = async () => {
     await setDoc(doc(db, "salaries", year, monthNumber, employee.id), {
-      ...employee,
+      ...employee, payment: "none"
     })
       .then(() => {
         updateEmployeeToPath(employee.id);

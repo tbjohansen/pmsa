@@ -96,15 +96,15 @@ const AddEmployee = () => {
     e.preventDefault();
 
     if (!firstName) {
-      toast.warning("Please enter first name");
+      toast.error("Please enter first name");
     } else if (!lastName) {
-      toast.warning("Please enter last name");
+      toast.error("Please enter last name");
     } else if (!gender) {
-      toast.warning("Please select gender");
+      toast.error("Please select gender");
     } else if (!phone) {
-      toast.warning("Please enter phone number");
+      toast.error("Please enter phone number");
     } else if (!desgnations) {
-      toast.warning("Please select designation");
+      toast.error("Please select designation");
     } else {
       //start registration
       setLoading(true);

@@ -85,7 +85,7 @@ const MidSalary = ({ payroll }) => {
 
 const PaymentStatus = ({ payroll }) => {};
 
-const MidMonthPayroll = () => {
+const MidMonthTransactions = () => {
   const employees = useSelector(selectSalaries);
   const midMonthEmployees = employees.filter(
     (employee) => employee.paymentMode == 2
@@ -110,4 +110,4 @@ const MidMonthPayroll = () => {
   );
 };
 
-export default MidMonthPayroll;
+export default MidMonthTransactions;

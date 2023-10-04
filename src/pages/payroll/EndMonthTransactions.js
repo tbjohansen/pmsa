@@ -52,15 +52,6 @@ const columns = [
     ),
   },
   {
-    title: "Mid Month Salary",
-    key: "midSalary",
-    render: (_, payroll) => (
-      <>
-        <MidSalary payroll={payroll} />
-      </>
-    ),
-  },
-  {
     title: "Payment",
     key: "status",
     render: (_, payroll) => (
@@ -78,19 +69,11 @@ const columns = [
   },
 ];
 
-const MidSalary = ({ payroll }) => {
-  const salary = payroll.netSalary / 2;
-  return <p>{formatter.format(salary || 0)}</p>;
-};
-
 const PaymentStatus = ({ payroll }) => {};
 
-const MidMonthPayroll = () => {
+const EndMonthTransactions = () => {
   const employees = useSelector(selectSalaries);
-  const midMonthEmployees = employees.filter(
-    (employee) => employee.paymentMode == 2
-  );
-  const employeesList = midMonthEmployees
+  const employeesList = employees
     .slice()
     .sort((a, b) => b.created_at - a.created_at);
   const sortedEmployees = employeesList.map((employee, index) => {
@@ -110,4 +93,4 @@ const MidMonthPayroll = () => {
   );
 };
 
-export default MidMonthPayroll;
+export default EndMonthTransactions;

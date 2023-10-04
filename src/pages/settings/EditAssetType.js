@@ -51,7 +51,7 @@ const EditAssetType = ({ assetType }) => {
     e.preventDefault();
 
     if (!typeName) {
-      toast.warning("Please enter type name");
+      toast.error("Please enter type name");
     } else {
       //start registration
       setLoading(true);

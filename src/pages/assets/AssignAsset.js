@@ -137,9 +137,9 @@ const AssignAsset = ({ asset }) => {
     e.preventDefault();
 
     if (!employee) {
-      toast.warning("Please select employee");
+      toast.error("Please select employee");
     } else if (!assignedDate) {
-      toast.warning("Please select assigned date");
+      toast.error("Please select assigned date");
     } else {
       //start registration
       setLoading(true);

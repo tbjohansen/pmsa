@@ -61,17 +61,17 @@ const EditEmployeeSalary = ({ info }) => {
     e.preventDefault();
 
     if (!amount) {
-      toast.warning("Please enter salary amount");
+      toast.error("Please enter salary amount");
     } else if (!paymentMode) {
-      toast.warning("Please select salary payment mode");
+      toast.error("Please select salary payment mode");
     } else if (!socialSecurity) {
-      toast.warning("Please select social security status");
+      toast.error("Please select social security status");
     } else {
       if (socialSecurity == 2) {
         if (!ssn) {
-          toast.warning("Please enter NSSF number");
+          toast.error("Please enter NSSF number");
         } else if (!paye) {
-          toast.warning("Please enter possible PAYE amount");
+          toast.error("Please enter possible PAYE amount");
         } else {
           //start registration
           setLoading(true);
