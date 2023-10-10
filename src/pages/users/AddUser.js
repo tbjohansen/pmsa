@@ -119,9 +119,9 @@ const AddUser = () => {
         })
         .catch((error) => {
           // Getting the Error details.
-          const code = error.code;
+          // const code = error.code;
           const message = error.message;
-          const details = error.details;
+          // const details = error.details;
           setLoading(false);
           toast.error(message);
         });

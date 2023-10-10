@@ -53,7 +53,7 @@ const Profile = () => {
     };
 
     getProfile();
-  }, [dispatch]);
+  }, [dispatch, uid]);
 
   const profile = useSelector(selectUserInfo);
 

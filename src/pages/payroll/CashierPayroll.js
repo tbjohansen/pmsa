@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   Button,
   DatePicker,
-  Popconfirm,
   Segmented,
   Space,
   Table,
@@ -14,10 +13,7 @@ import PropTypes from "prop-types";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
 import {
   collection,
-  deleteDoc,
-  doc,
   getDocs,
-  updateDoc,
 } from "firebase/firestore";
 import { addEmployees } from "../../features/employeeSlice";
 import { db } from "../../App";
@@ -33,8 +29,6 @@ import EndMonthPayroll from "./EndMonthPayroll";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { DownloadForOfflineOutlined } from "@mui/icons-material";
-import MidMonthTransactions from "./MidMonthTransactions";
-import EndMonthTransactions from "./EndMonthTransactions";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -117,15 +111,15 @@ const columns = [
       </>
     ),
   },
-  {
-    title: "Payroll",
-    key: "payroll",
-    render: (_, payroll) => (
-      <>
-        <RemovePayroll employee={payroll} />
-      </>
-    ),
-  },
+//   {
+//     title: "Payroll",
+//     key: "payroll",
+//     render: (_, payroll) => (
+//       <>
+//         <RemovePayroll employee={payroll} />
+//       </>
+//     ),
+//   },
   {
     title: "Payment",
     key: "status",
@@ -154,98 +148,6 @@ const PaymentStatus = ({ payroll }) => {
   }
 };
 
-const RemovePayroll = ({ employee }) => {
-  const dispatch = useDispatch();
-
-  const month = moment().format("MMMM");
-  const monthNumber = moment().month(month).format("M");
-  const year = moment().format("YYYY");
-
-  // console.log(employee);
-
-  const getEmployees = async () => {
-    let salaryArray = [];
-
-    const querySnapshot = await getDocs(
-      collection(db, "salaries", year, monthNumber)
-    );
-    querySnapshot.forEach((doc) => {
-      //set data
-      const data = doc.data();
-      salaryArray.push(data);
-    });
-
-    if (salaryArray.length > 0) {
-      dispatch(addSalaries(salaryArray));
-    } else {
-      dispatch(addSalaries([]));
-    }
-  };
-
-  const changeStatus = async () => {
-    if (employee?.payment === "none") {
-      await deleteDoc(doc(db, "salaries", year, monthNumber, employee?.id))
-        .then(() => {
-          updateEmployeeToPath(employee.id);
-        })
-        .catch((error) => {
-          // console.error("Error removing document: ", error.message);
-          toast.error(error.message);
-        });
-    } else {
-      toast.error("Sorry! Employee can't be removed on this month payroll");
-    }
-  };
-
-  const updateEmployeeToPath = async (id) => {
-    // Add a new document with a generated id
-    await updateDoc(
-      doc(db, "users", "employees", id, "public", "account", "info"),
-      {
-        payroll: false,
-      }
-    )
-      .then(async () => {
-        await updateDoc(doc(db, "employeesBucket", employee?.id), {
-          payroll: false,
-        })
-          .then(() => {
-            getEmployees();
-            toast.success(
-              "Employee is removed to this month payroll successfully"
-            );
-          })
-          .catch((error) => {
-            // console.error("Error removing document: ", error.message);
-            toast.error(error.message);
-          });
-      })
-      .catch((error) => {
-        // console.error("Error removing document: ", error.message);
-        toast.error(error.message);
-      });
-  };
-
-  return (
-    <Popconfirm
-      title=""
-      description={`Are you sure to remove this employee on payroll this month?`}
-      okText="Yes"
-      cancelText="No"
-      okButtonProps={{
-        className: "bg-blue-500",
-      }}
-      onConfirm={changeStatus}
-    >
-      <button
-        type="button"
-        className="px-4 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
-      >
-        Remove
-      </button>
-    </Popconfirm>
-  );
-};
 
 const MonthSalaries = () => {
   const employees = useSelector(selectSalaries);
@@ -354,7 +256,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
   );
 };
 
-const Payroll = () => {
+const CashierPayroll = () => {
   const dispatch = useDispatch();
 
   const [value, setValue] = useState(0);
@@ -692,8 +594,6 @@ const Payroll = () => {
                 <Tab label="MONTH SALARIES" {...a11yProps(0)} />
                 <Tab label="MID MONTH SALARIES" {...a11yProps(1)} />
                 <Tab label="END MONTH SALARIES" {...a11yProps(2)} />
-                <Tab label="MID MONTH PAYROLL" {...a11yProps(3)} />
-                <Tab label="END MONTH PAYROLL" {...a11yProps(4)} />
               </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>
@@ -717,12 +617,6 @@ const Payroll = () => {
             <CustomTabPanel value={value} index={2}>
               <EndMonthPayroll label={label} yearValue={yearValue} />
             </CustomTabPanel>
-            <CustomTabPanel value={value} index={3}>
-              <MidMonthTransactions label={label} yearValue={yearValue} />
-            </CustomTabPanel>
-            <CustomTabPanel value={value} index={4}>
-              <EndMonthTransactions label={label} yearValue={yearValue} />
-            </CustomTabPanel>
           </Box>
         </div>
       </div>
@@ -730,4 +624,4 @@ const Payroll = () => {
   );
 };
 
-export default Payroll;
+export default CashierPayroll;

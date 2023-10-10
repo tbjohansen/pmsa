@@ -244,7 +244,7 @@ const Loan = () => {
               <div className="flex flex-row gap-2 py-1">
                 <p className="w-[30%]">Employee Name:</p>
                 <p className="w-[70%] capitalize">
-                  {loanDetails?.employeeName}
+                  {`${loanDetails?.employeeFirstName} ${loanDetails?.employeeMiddleName} ${loanDetails?.employeeLastName}`}
                 </p>
               </div>
               <div className="flex flex-row gap-2 py-1">

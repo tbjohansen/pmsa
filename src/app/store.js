@@ -6,6 +6,7 @@ import assetReducer from "../features/assetSlice";
 import employeeReducer from "../features/employeeSlice";
 import loanReducer from "../features/loanSlice";
 import payrollReducer from "../features/payrollSlice";
+import systemReducer from "../features/systemSlice";
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     employee: employeeReducer,
     loan: loanReducer,
     payroll: payrollReducer,
+    system: systemReducer,
   },
   middleware: [thunk]
 });

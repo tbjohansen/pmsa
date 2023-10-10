@@ -17,7 +17,7 @@ import {
   selectDesignations,
 } from "../../features/settingSlice";
 import { addEmployees } from "../../features/employeeSlice";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { Edit } from "@mui/icons-material";
 
 const style = {
@@ -112,7 +112,7 @@ const EditEmployee = ({ employee }) => {
       //start registration
       setLoading(true);
 
-      const dataRef = doc(collection(db, "employeesBucket", employee?.id));
+      const dataRef = doc(db, "employeesBucket", employee?.id);
       await updateDoc(dataRef, {
         firstName,
         middleName,
@@ -124,9 +124,9 @@ const EditEmployee = ({ employee }) => {
         designationID: designation?.id,
         updated_at: Timestamp.fromDate(new Date()),
       })
-        .then((employee) => {
+        .then(() => {
           //
-          editEmployeeToPath(employee.id);
+          editEmployeeToPath({id: employee?.id});
         })
         .catch((error) => {
           setLoading(false);
@@ -136,11 +136,9 @@ const EditEmployee = ({ employee }) => {
     }
   };
 
-  const editEmployeeToPath = async (id) => {
+  const editEmployeeToPath = async ({id}) => {
     //
-    const dataRef = doc(
-      collection(db, "users", "employees", id, "public", "account", "info")
-    );
+    const dataRef = doc(db, "users", "employees", id, "public", "account", "info");
     await updateDoc(dataRef, {
       firstName,
       middleName,

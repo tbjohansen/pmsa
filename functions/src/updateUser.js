@@ -13,6 +13,7 @@ exports.updateUser = onCall(
     const role = request.data.role;
     const roleID = request.data.roleID;
     const status = request.data.status;
+    const disabled = request.data.disabled;
     const updated_at = request.data.updated_at;
 
     let successArray = [];
@@ -22,7 +23,7 @@ exports.updateUser = onCall(
         email: email,
         displayName: name,
         emailVerified: true,
-        disabled: status
+        disabled
       });
 
       successArray.push(user);

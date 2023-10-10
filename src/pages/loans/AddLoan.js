@@ -46,6 +46,8 @@ const AddLoan = () => {
   const [deduction, setDeduction] = useState(0);
   const [deductionAmount, setDeductionAmount] = useState("");
   const [salaryDeduction, setSalaryDeduction] = useState("");
+  const [midMonthDeduction, setMidDeduction] = useState(0);
+  const [endMonthDeduction, setEndDeduction] = useState(deduction);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -78,7 +80,7 @@ const AddLoan = () => {
   const getTotal = () => {
     if (amount && deductionTime) {
       let total = amount / deductionTime;
-      console.log(total);
+      // console.log(total);
       setDeduction(total);
       if (isNumber(total)) {
         setDeductionAmount(formatter.format(total));
@@ -89,6 +91,30 @@ const AddLoan = () => {
   useEffect(() => {
     getTotal();
   }, [amount, deductionTime]);
+
+  const getSalaryDeductionDetails = () => {
+    if (salaryDeduction && deduction) {
+      //check if salary deduction is mid, end or both
+      const half = parseInt(deduction) / 2;
+      if (salaryDeduction == 1) {
+        //mid month salary only
+        setMidDeduction(deduction);
+        setEndDeduction(0);
+      } else if (salaryDeduction == 3) {
+        //both mid and end
+        setMidDeduction(half);
+        setEndDeduction(half);
+      } else {
+        //end month salary only
+        setMidDeduction(0);
+        setEndDeduction(deduction);
+      }
+    }
+  };
+
+  useEffect(() => {
+    getSalaryDeductionDetails();
+  }, [salaryDeduction, deduction]);
 
   const employees = useSelector(selectEmployees);
   const sortedEmployees = employees.map((employee) => ({
@@ -142,16 +168,23 @@ const AddLoan = () => {
           const dataRef = doc(collection(db, "loans"));
           await setDoc(dataRef, {
             employeeID: employee?.data?.id,
-            employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+            employeeFirstName: employee?.data?.firstName,
+            employeeMiddleName: employee?.data?.middleName,
+            employeeLastName: employee?.data?.lastName,
             employeeDesignation: employee?.data?.designation,
+            employeePaymentMode: employee?.data?.paymentMode,
+            employeeSalary: employee?.data?.salary,
             date: Timestamp.fromDate(new Date(date)),
             amount: parseInt(amount),
             deductionMonths: deductionTime,
             deductionAmount: parseInt(deduction),
+            midMonthDeduction: parseInt(midMonthDeduction),
+            endMonthDeduction: parseInt(endMonthDeduction),
             description,
             id: dataRef.id,
             paid: false,
             paidAmount: 0,
+            salaryDeduction,
             debt: parseInt(amount),
             created_at: Timestamp.fromDate(new Date()),
             updated_at: Timestamp.fromDate(new Date()),
@@ -189,16 +222,23 @@ const AddLoan = () => {
       );
       await setDoc(dataRef, {
         employeeID: employee?.data?.id,
-        employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+        employeeFirstName: employee?.data?.firstName,
+        employeeMiddleName: employee?.data?.middleName,
+        employeeLastName: employee?.data?.lastName,
         employeeDesignation: employee?.data?.designation,
+        employeePaymentMode: employee?.data?.paymentMode,
+        employeeSalary: employee?.data?.salary,
         date: Timestamp.fromDate(new Date(date)),
         amount: parseInt(amount),
         deductionMonths: deductionTime,
         deductionAmount: parseInt(deduction),
+        midMonthDeduction: parseInt(midMonthDeduction),
+        endMonthDeduction: parseInt(endMonthDeduction),
         description,
         loanID,
         paid: false,
         paidAmount: 0,
+        salaryDeduction,
         debt: parseInt(amount),
         created_at: Timestamp.fromDate(new Date()),
         updated_at: Timestamp.fromDate(new Date()),
@@ -208,6 +248,8 @@ const AddLoan = () => {
             employeeID: employee?.id,
             deductionAmount: parseInt(deduction),
             loanAmount: parseInt(amount),
+            midDeduction: parseInt(midMonthDeduction),
+            endDeduction: parseInt(endMonthDeduction),
             salaryDeduction,
           });
         })
@@ -225,6 +267,8 @@ const AddLoan = () => {
     employeeID,
     deductionAmount,
     loanAmount,
+    midDeduction,
+    endDeduction,
     salaryDeduction,
   }) => {
     const dataRef = doc(
@@ -239,9 +283,11 @@ const AddLoan = () => {
     await updateDoc(dataRef, {
       loan: increment(loanAmount),
       loanStatus: true,
-      loanDeduction: deductionAmount,
+      loanDeduction: increment(deductionAmount),
       salaryToDeductLoan: salaryDeduction,
       netSalary: increment(-deductionAmount),
+      midMonthNetSalary: increment(-midDeduction),
+      endMonthNetSalary: increment(-endDeduction),
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(async () => {
@@ -250,24 +296,23 @@ const AddLoan = () => {
         await updateDoc(dataRef, {
           loan: increment(loanAmount),
           loanStatus: true,
-          loanDeduction: deductionAmount,
+          loanDeduction: increment(deductionAmount),
           salaryToDeductLoan: salaryDeduction,
           netSalary: increment(-deductionAmount),
+          midMonthNetSalary: increment(-midDeduction),
+          endMonthNetSalary: increment(-endDeduction),
           updated_at: Timestamp.fromDate(new Date()),
         })
           .then(() => {
             //
-            setEmployee("");
-            setAmount("");
-            setDate(null);
-            setDeductionTime("");
-            setDeduction(0);
-            setDeductionAmount("");
-            setDescription("");
-
-            getLoans();
-
-            toast.success("Employee loan is saved successfully");
+            checkDeductionEligibility({
+              employeeID,
+              deductionAmount,
+              loanAmount,
+              midDeduction,
+              endDeduction,
+              salaryDeduction,
+            });
           })
           .catch((error) => {
             setLoading(false);
@@ -278,6 +323,94 @@ const AddLoan = () => {
         // console.error("Error removing document: ", error.message);
         toast.error(error.message);
         setLoading(false);
+      });
+  };
+
+  const checkDeductionEligibility = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    midDeduction,
+    endDeduction,
+    salaryDeduction,
+    employee,
+  }) => {
+    if (employee.payment === "end") {
+      //write into next month salary
+      updateEmployeeSalaryPath({
+        employeeID,
+        deductionAmount,
+        loanAmount,
+        midDeduction,
+        endDeduction,
+        salaryDeduction,
+      });
+    } else {
+      if (employee.payment === "half") {
+        //write deduction to current month end salary
+        updateEmployeeSalaryPath({
+          employeeID,
+          deductionAmount,
+          loanAmount,
+          midDeduction,
+          endDeduction,
+          salaryDeduction,
+        });
+      } else {
+        updateEmployeeSalaryPath({
+          employeeID,
+          deductionAmount,
+          loanAmount,
+          midDeduction,
+          endDeduction,
+          salaryDeduction,
+        });
+      }
+    }
+  };
+
+  const updateEmployeeSalaryPath = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    midDeduction,
+    endDeduction,
+    salaryDeduction,
+  }) => {
+    //update loan details on employee on bucket
+    //check if mid month or end month salaries are paid
+    const dataRef = doc(collection(db, "salary", "year", "month", employeeID));
+    await updateDoc(dataRef, {
+      loan: increment(loanAmount),
+      loanStatus: true,
+      loanDeduction: increment(deductionAmount),
+      salaryToDeductLoan: salaryDeduction,
+      netSalary: increment(-deductionAmount),
+      midMonthNetSalary: increment(-midDeduction),
+      endMonthNetSalary: increment(-endDeduction),
+      midMonthLoanDeduction: increment(midDeduction),
+      endMonthLoanDeduction: increment(endDeduction),
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(() => {
+        //
+        setEmployee("");
+        setAmount("");
+        setDate(null);
+        setDeductionTime("");
+        setDeduction(0);
+        setDeductionAmount("");
+        setMidDeduction(0);
+        setEndDeduction(0);
+        setDescription("");
+
+        getLoans();
+
+        toast.success("Employee loan is saved successfully");
+      })
+      .catch((error) => {
+        setLoading(false);
+        toast.error(error.message);
       });
   };
 

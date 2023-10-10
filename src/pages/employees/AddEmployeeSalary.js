@@ -78,12 +78,6 @@ const AddEmployeeSalary = () => {
     } else if (!socialSecurity) {
       toast.error("Please select social security status");
     } else {
-      //initialize mid and end salary
-      let midMonthSalary = 0;
-      let endMonthSalary = 0;
-      let midMonthNetSalary = 0;
-      let endMonthNetSalary = 0;
-
       if (socialSecurity == 2) {
         if (!ssn) {
           toast.error("Please enter NSSF number");
@@ -98,17 +92,141 @@ const AddEmployeeSalary = () => {
           const netSalary = parseInt(amount) - deductionAmount;
 
           if (paymentMode == 2) {
-            midMonthSalary = parseInt(amount) / 2;
-            endMonthSalary = parseInt(amount) / 2;
-            midMonthNetSalary = netSalary / 2;
-            endMonthNetSalary = netSalary / 2;
-          } else {
-            midMonthSalary = 0;
-            endMonthSalary = parseInt(amount);
-            midMonthNetSalary = 0;
-            endMonthNetSalary = netSalary;
-          }
+            //initialize data
+            const midMonthSalary = parseInt(amount) / 2;
+            const endMonthSalary = parseInt(amount) / 2;
+            const midMonthNetSalary = netSalary / 2;
+            const endMonthNetSalary = netSalary / 2;
 
+            //add data
+            const dataRef = doc(
+              db,
+              "users",
+              "employees",
+              employeeID,
+              "public",
+              "account",
+              "info"
+            );
+            await setDoc(
+              dataRef,
+              {
+                salary: parseInt(amount),
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: true,
+                ssn,
+                nssfAmount,
+                deductionAmount,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary,
+                loan: 0,
+                loanDeduction: 0,
+                midMonthLoanDeduction: 0,
+                endMonthLoanDeduction: 0,
+                paye: parseInt(paye),
+              },
+              { merge: true }
+            )
+              .then(async () => {
+                //update salary on bucket
+                updateEmployeeBucket({
+                  salary: parseInt(amount),
+                  paye: parseInt(paye),
+                  paymentMode: parseInt(paymentMode),
+                  socialSecurity: true,
+                  ssn,
+                  nssfAmount,
+                  deductionAmount,
+                  midMonthSalary,
+                  endMonthSalary,
+                  midMonthNetSalary,
+                  endMonthNetSalary,
+                  netSalary,
+                });
+              })
+              .catch((error) => {
+                // console.error("Error removing document: ", error.message);
+                toast.error(error.message);
+                setLoading(false);
+              });
+          } else {
+            //initialize data
+            const midMonthSalary = 0;
+            const endMonthSalary = parseInt(amount);
+            const midMonthNetSalary = 0;
+            const endMonthNetSalary = netSalary;
+
+            //add data
+            const dataRef = doc(
+              db,
+              "users",
+              "employees",
+              employeeID,
+              "public",
+              "account",
+              "info"
+            );
+            await setDoc(
+              dataRef,
+              {
+                salary: parseInt(amount),
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: true,
+                ssn,
+                nssfAmount,
+                deductionAmount,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary,
+                loan: 0,
+                loanDeduction: 0,
+                midMonthLoanDeduction: 0,
+                endMonthLoanDeduction: 0,
+                paye: parseInt(paye),
+              },
+              { merge: true }
+            )
+              .then(async () => {
+                //update salary on bucket
+                updateEmployeeBucket({
+                  salary: parseInt(amount),
+                  paye: parseInt(paye),
+                  paymentMode: parseInt(paymentMode),
+                  socialSecurity: true,
+                  ssn,
+                  nssfAmount,
+                  deductionAmount,
+                  midMonthSalary,
+                  endMonthSalary,
+                  midMonthNetSalary,
+                  endMonthNetSalary,
+                  netSalary,
+                });
+              })
+              .catch((error) => {
+                // console.error("Error removing document: ", error.message);
+                toast.error(error.message);
+                setLoading(false);
+              });
+          }
+        }
+      } else {
+        //start registration
+        setLoading(true);
+        //check payment method
+        if (paymentMode == 2) {
+          //initialize data
+          const midMonthSalary = parseInt(amount) / 2;
+          const endMonthSalary = parseInt(amount) / 2;
+          const midMonthNetSalary = parseInt(amount) / 2;
+          const endMonthNetSalary = parseInt(amount) / 2;
+
+          //add data
           const dataRef = doc(
             db,
             "users",
@@ -122,64 +240,101 @@ const AddEmployeeSalary = () => {
             dataRef,
             {
               salary: parseInt(amount),
+              ssn: "",
+              paye: 0,
               paymentMode: parseInt(paymentMode),
-              socialSecurity: true,
-              ssn,
-              nssfAmount,
-              deductionAmount,
+              socialSecurity: false,
+              nssfAmount: 0,
+              deductionAmount: 0,
               midMonthSalary,
               endMonthSalary,
               midMonthNetSalary,
               endMonthNetSalary,
-              netSalary,
               loan: 0,
-              paye: parseInt(paye),
+              loanDeduction: 0,
+              midMonthLoanDeduction: 0,
+              endMonthLoanDeduction: 0,
+              netSalary: parseInt(amount),
             },
             { merge: true }
           )
             .then(async () => {
               //update salary on bucket
-              // updateEmployeeBucket({
-              //   salary: parseInt(amount),
-              //   paye: parseInt(paye),
-              //   paymentMode: parseInt(paymentMode),
-              //   socialSecurity: true,
-              //   ssn,
-              //   nssfAmount,
-              //   deductionAmount,
-              //   netSalary,
-              // });
-              const dataRef = doc(
-                collection(db, "employeesBucket", employeeID)
-              );
-              await updateDoc(dataRef, {
+              updateEmployeeBucket({
                 salary: parseInt(amount),
-                paye: parseInt(paye),
+                paye: 0,
                 paymentMode: parseInt(paymentMode),
-                socialSecurity: true,
-                ssn,
-                netSalary,
-                deductionAmount,
-                nssfAmount,
-                loan: 0,
-                updated_at: Timestamp.fromDate(new Date()),
-              })
-                .then(() => {
-                  //
-                  setAmount("");
-                  setPayment("");
-                  setSocial("");
-                  setSSN("");
-                  setPaye("");
-                  getEmployeeDetails();
-                  toast.success("Salary info are saved successfully");
-                  setLoading(false);
-                })
-                .catch((error) => {
-                  setLoading(false);
-                  console.log("Error creating new employee:", error);
-                  toast.error(error.message);
-                });
+                socialSecurity: false,
+                ssn: "",
+                nssfAmount: 0,
+                deductionAmount: 0,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary: parseInt(amount),
+              });
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+              setLoading(false);
+            });
+        } else {
+          //initialize data
+          const midMonthSalary = 0;
+          const endMonthSalary = parseInt(amount);
+          const midMonthNetSalary = 0;
+          const endMonthNetSalary = parseInt(amount);
+
+          //add data
+          const dataRef = doc(
+            db,
+            "users",
+            "employees",
+            employeeID,
+            "public",
+            "account",
+            "info"
+          );
+          await setDoc(
+            dataRef,
+            {
+              salary: parseInt(amount),
+              ssn: "",
+              paye: 0,
+              paymentMode: parseInt(paymentMode),
+              socialSecurity: false,
+              nssfAmount: 0,
+              deductionAmount: 0,
+              midMonthSalary,
+              endMonthSalary,
+              midMonthNetSalary,
+              endMonthNetSalary,
+              loan: 0,
+              loanDeduction: 0,
+              midMonthLoanDeduction: 0,
+              endMonthLoanDeduction: 0,
+              netSalary: parseInt(amount),
+            },
+            { merge: true }
+          )
+            .then(async () => {
+              //update salary on bucket
+              updateEmployeeBucket({
+                salary: parseInt(amount),
+                paye: 0,
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: false,
+                ssn: "",
+                nssfAmount: 0,
+                deductionAmount: 0,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary: parseInt(amount),
+              });
             })
             .catch((error) => {
               // console.error("Error removing document: ", error.message);
@@ -187,130 +342,60 @@ const AddEmployeeSalary = () => {
               setLoading(false);
             });
         }
-      } else {
-        //start registration
-        setLoading(true);
-
-        const dataRef = doc(
-          db,
-          "users",
-          "employees",
-          employeeID,
-          "public",
-          "account",
-          "info"
-        );
-        await setDoc(
-          dataRef,
-          {
-            salary: parseInt(amount),
-            ssn: "",
-            paye: 0,
-            paymentMode: parseInt(paymentMode),
-            socialSecurity: false,
-            nssfAmount: 0,
-            deductionAmount: 0,
-            midMonthSalary,
-            endMonthSalary,
-            midMonthNetSalary,
-            endMonthNetSalary,
-            loan: 0,
-            netSalary: parseInt(amount),
-          },
-          { merge: true }
-        )
-          .then(async () => {
-            //update salary on bucket
-            // updateEmployeeBucket({
-            //   salary: parseInt(amount),
-            //   paye: 0,
-            //   paymentMode: parseInt(paymentMode),
-            //   socialSecurity: false,
-            //   ssn: "",
-            //   nssfAmount: 0,
-            //   deductionAmount: 0,
-            //   netSalary: parseInt(amount),
-            // });
-
-            const dataRef = doc(collection(db, "employeesBucket", employeeID));
-            await updateDoc(dataRef, {
-              salary: parseInt(amount),
-              paye: 0,
-              paymentMode: parseInt(paymentMode),
-              socialSecurity: false,
-              ssn: "",
-              nssfAmount: 0,
-              deductionAmount: 0,
-              netSalary: parseInt(amount),
-              loan: 0,
-              updated_at: Timestamp.fromDate(new Date()),
-            })
-              .then(() => {
-                //
-                setAmount("");
-                setPayment("");
-                setSocial("");
-                setSSN("");
-                setPaye("");
-                getEmployeeDetails();
-                toast.success("Salary info are saved successfully");
-                setLoading(false);
-              })
-              .catch((error) => {
-                setLoading(false);
-                console.log("Error creating new employee:", error);
-                toast.error(error.message);
-              });
-          })
-          .catch((error) => {
-            // console.error("Error removing document: ", error.message);
-            toast.error(error.message);
-            setLoading(false);
-          });
       }
     }
   };
 
-  // const updateEmployeeBucket = async ({
-  //   salary,
-  //   paye,
-  //   paymentMode,
-  //   socialSecurity,
-  //   ssn,
-  //   netSalary,
-  //   deductionAmount,
-  //   nssfAmount,
-  // }) => {
-  //   const dataRef = doc(collection(db, "employeesBucket", employeeID));
-  //   await updateDoc(dataRef, {
-  //     salary,
-  //     paye,
-  //     paymentMode,
-  //     socialSecurity,
-  //     ssn,
-  //     netSalary,
-  //     deductionAmount,
-  //     nssfAmount,
-  //     loan: 0,
-  //     updated_at: Timestamp.fromDate(new Date()),
-  //   })
-  //     .then(() => {
-  //       //
-  //       setAmount("");
-  //       setPayment("");
-  //       setSocial("");
-  //       setSSN("");
-  //       setPaye("");
-  //       getEmployeeDetails();
-  //       toast.success("Salary info are saved successfully");
-  //       setLoading(false);
-  //     })
-  //     .catch((error) => {
-  //       setLoading(false);
-  //       console.log("Error creating new employee:", error);
-  //       toast.error(error.message);
-  //     });
-  // };
+  const updateEmployeeBucket = async ({
+    salary,
+    paye,
+    paymentMode,
+    socialSecurity,
+    ssn,
+    netSalary,
+    deductionAmount,
+    midMonthSalary,
+    endMonthSalary,
+    midMonthNetSalary,
+    endMonthNetSalary,
+    nssfAmount,
+  }) => {
+    const dataRef = doc(db, "employeesBucket", employeeID);
+    await updateDoc(dataRef, {
+      salary,
+      paye,
+      paymentMode,
+      socialSecurity,
+      ssn,
+      netSalary,
+      deductionAmount,
+      nssfAmount,
+      midMonthSalary,
+      endMonthSalary,
+      midMonthNetSalary,
+      endMonthNetSalary,
+      loan: 0,
+      loanDeduction: 0,
+      midMonthLoanDeduction: 0,
+      endMonthLoanDeduction: 0,
+    })
+      .then(() => {
+        //
+        setAmount("");
+        setPayment("");
+        setSocial("");
+        setSSN("");
+        setPaye("");
+        getEmployeeDetails();
+        toast.success("Salary info are saved successfully");
+        setLoading(false);
+      })
+      .catch((error) => {
+        setLoading(false);
+        console.log("Error creating new employee:", error);
+        toast.error(error.message);
+      });
+  };
 
   const renderButton = () => {
     if (loading) {

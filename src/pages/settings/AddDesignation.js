@@ -14,7 +14,7 @@ import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import { useDispatch } from "react-redux";
 import { addDesignations } from "../../features/settingSlice";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const style = {
   position: "absolute",

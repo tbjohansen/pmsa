@@ -18,7 +18,7 @@ import {
   selectDesignations,
 } from "../../features/settingSlice";
 import { addEmployees } from "../../features/employeeSlice";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const style = {
   position: "absolute",

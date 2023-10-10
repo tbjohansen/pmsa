@@ -1,15 +1,23 @@
-import React, { useState } from "react";
-import { db } from "../../App";
-import { collection, doc, getDoc, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { auth, db } from "../../App";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  Timestamp,
+  updateDoc,
+} from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button, MenuItem } from "@mui/material";
-import { useDispatch } from "react-redux";
-import { addAdditionalInfo, addEmployeesDetails } from "../../features/employeeSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { addEmployeesDetails } from "../../features/employeeSlice";
 import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 import { Edit } from "@mui/icons-material";
+import { addUserInfo, selectUserInfo } from "../../features/userSlice";
 
 const style = {
   position: "absolute",
@@ -35,6 +43,30 @@ const EditEmployeeSalary = ({ info }) => {
 
   const dispatch = useDispatch();
   const { employeeID } = useParams();
+
+  const user = auth.currentUser;
+  const uid = user.uid;
+
+  useEffect(() => {
+    const getProfile = async () => {
+      try {
+        const docRef = doc(db, "userBucket", uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          dispatch(addUserInfo(data));
+        } else {
+          // docSnap.data() will be undefined in this case
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    getProfile();
+  }, [dispatch, uid]);
 
   const getEmployeeDetails = async () => {
     const docRef = doc(
@@ -80,6 +112,136 @@ const EditEmployeeSalary = ({ info }) => {
           const deductionAmount = parseInt(paye) + nssfAmount;
           const netSalary = parseInt(amount) - deductionAmount;
 
+          if (paymentMode == 2) {
+            //initialize data
+            const midMonthSalary = parseInt(amount) / 2;
+            const endMonthSalary = parseInt(amount) / 2;
+            const midMonthNetSalary = netSalary / 2;
+            const endMonthNetSalary = netSalary / 2;
+
+            //add data
+            const dataRef = doc(
+              db,
+              "users",
+              "employees",
+              employeeID,
+              "public",
+              "account",
+              "info"
+            );
+            await setDoc(
+              dataRef,
+              {
+                salary: parseInt(amount),
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: true,
+                ssn,
+                nssfAmount,
+                deductionAmount,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary,
+                loan: 0,
+                paye: parseInt(paye),
+              },
+              { merge: true }
+            )
+              .then(async () => {
+                //update salary on bucket
+                updateEmployeeBucket({
+                  salary: parseInt(amount),
+                  paye: parseInt(paye),
+                  paymentMode: parseInt(paymentMode),
+                  socialSecurity: true,
+                  ssn,
+                  nssfAmount,
+                  deductionAmount,
+                  midMonthSalary,
+                  endMonthSalary,
+                  midMonthNetSalary,
+                  endMonthNetSalary,
+                  netSalary,
+                });
+              })
+              .catch((error) => {
+                // console.error("Error removing document: ", error.message);
+                toast.error(error.message);
+                setLoading(false);
+              });
+          } else {
+            //initialize data
+            const midMonthSalary = 0;
+            const endMonthSalary = parseInt(amount);
+            const midMonthNetSalary = 0;
+            const endMonthNetSalary = netSalary;
+
+            //add data
+            const dataRef = doc(
+              db,
+              "users",
+              "employees",
+              employeeID,
+              "public",
+              "account",
+              "info"
+            );
+            await setDoc(
+              dataRef,
+              {
+                salary: parseInt(amount),
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: true,
+                ssn,
+                nssfAmount,
+                deductionAmount,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary,
+                loan: 0,
+                paye: parseInt(paye),
+              },
+              { merge: true }
+            )
+              .then(async () => {
+                //update salary on bucket
+                updateEmployeeBucket({
+                  salary: parseInt(amount),
+                  paye: parseInt(paye),
+                  paymentMode: parseInt(paymentMode),
+                  socialSecurity: true,
+                  ssn,
+                  nssfAmount,
+                  deductionAmount,
+                  midMonthSalary,
+                  endMonthSalary,
+                  midMonthNetSalary,
+                  endMonthNetSalary,
+                  netSalary,
+                });
+              })
+              .catch((error) => {
+                // console.error("Error removing document: ", error.message);
+                toast.error(error.message);
+                setLoading(false);
+              });
+          }
+        }
+      } else {
+        //start registration
+        setLoading(true);
+        //check payment method
+        if (paymentMode == 2) {
+          //initialize data
+          const midMonthSalary = parseInt(amount) / 2;
+          const endMonthSalary = parseInt(amount) / 2;
+          const midMonthNetSalary = parseInt(amount) / 2;
+          const endMonthNetSalary = parseInt(amount) / 2;
+
+          //add data
           const dataRef = doc(
             db,
             "users",
@@ -89,30 +251,98 @@ const EditEmployeeSalary = ({ info }) => {
             "account",
             "info"
           );
-          await updateDoc(
+          await setDoc(
             dataRef,
             {
               salary: parseInt(amount),
+              ssn: "",
+              paye: 0,
               paymentMode: parseInt(paymentMode),
-              socialSecurity: true,
-              ssn,
-              nssfAmount,
-              deductionAmount,
-              netSalary,
-              paye: parseInt(paye),
+              socialSecurity: false,
+              nssfAmount: 0,
+              deductionAmount: 0,
+              midMonthSalary,
+              endMonthSalary,
+              midMonthNetSalary,
+              endMonthNetSalary,
+              loan: 0,
+              netSalary: parseInt(amount),
             },
+            { merge: true }
           )
-            .then(() => {
+            .then(async () => {
               //update salary on bucket
               updateEmployeeBucket({
                 salary: parseInt(amount),
-                paye: parseInt(paye),
+                paye: 0,
                 paymentMode: parseInt(paymentMode),
-                socialSecurity: true,
-                ssn,
-                nssfAmount,
-                deductionAmount,
-                netSalary,
+                socialSecurity: false,
+                ssn: "",
+                nssfAmount: 0,
+                deductionAmount: 0,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary: parseInt(amount),
+              });
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+              setLoading(false);
+            });
+        } else {
+          //initialize data
+          const midMonthSalary = 0;
+          const endMonthSalary = parseInt(amount);
+          const midMonthNetSalary = 0;
+          const endMonthNetSalary = parseInt(amount);
+
+          //add data
+          const dataRef = doc(
+            db,
+            "users",
+            "employees",
+            employeeID,
+            "public",
+            "account",
+            "info"
+          );
+          await setDoc(
+            dataRef,
+            {
+              salary: parseInt(amount),
+              ssn: "",
+              paye: 0,
+              paymentMode: parseInt(paymentMode),
+              socialSecurity: false,
+              nssfAmount: 0,
+              deductionAmount: 0,
+              midMonthSalary,
+              endMonthSalary,
+              midMonthNetSalary,
+              endMonthNetSalary,
+              loan: 0,
+              netSalary: parseInt(amount),
+            },
+            { merge: true }
+          )
+            .then(async () => {
+              //update salary on bucket
+              updateEmployeeBucket({
+                salary: parseInt(amount),
+                paye: 0,
+                paymentMode: parseInt(paymentMode),
+                socialSecurity: false,
+                ssn: "",
+                nssfAmount: 0,
+                deductionAmount: 0,
+                midMonthSalary,
+                endMonthSalary,
+                midMonthNetSalary,
+                endMonthNetSalary,
+                netSalary: parseInt(amount),
               });
             })
             .catch((error) => {
@@ -121,50 +351,6 @@ const EditEmployeeSalary = ({ info }) => {
               setLoading(false);
             });
         }
-      } else {
-        //start registration
-        setLoading(true);
-
-        const dataRef = doc(
-          db,
-          "users",
-          "employees",
-          employeeID,
-          "public",
-          "account",
-          "info"
-        );
-        await updateDoc(
-          dataRef,
-          {
-            salary: parseInt(amount),
-            ssn: "",
-            paye: 0,
-            paymentMode: parseInt(paymentMode),
-            socialSecurity: false,
-            nssfAmount: 0,
-            deductionAmount: 0,
-            netSalary: parseInt(amount),
-          },
-        )
-          .then(() => {
-            //update salary on bucket
-            updateEmployeeBucket({
-              salary: parseInt(amount),
-              paye: 0,
-              paymentMode: parseInt(paymentMode),
-              socialSecurity: false,
-              ssn: "",
-              nssfAmount: 0,
-              deductionAmount: 0,
-              netSalary: parseInt(amount),
-            });
-          })
-          .catch((error) => {
-            // console.error("Error removing document: ", error.message);
-            toast.error(error.message);
-            setLoading(false);
-          });
       }
     }
   };
@@ -177,9 +363,13 @@ const EditEmployeeSalary = ({ info }) => {
     ssn,
     netSalary,
     deductionAmount,
+    midMonthSalary,
+    endMonthSalary,
+    midMonthNetSalary,
+    endMonthNetSalary,
     nssfAmount,
   }) => {
-    const dataRef = doc(collection(db, "employeesBucket", employeeID));
+    const dataRef = doc(db, "employeesBucket", employeeID);
     await updateDoc(dataRef, {
       salary,
       paye,
@@ -189,7 +379,11 @@ const EditEmployeeSalary = ({ info }) => {
       netSalary,
       deductionAmount,
       nssfAmount,
-      updated_at: Timestamp.fromDate(new Date()),
+      midMonthSalary,
+      endMonthSalary,
+      midMonthNetSalary,
+      endMonthNetSalary,
+      loan: 0,
     })
       .then(() => {
         //
@@ -203,6 +397,7 @@ const EditEmployeeSalary = ({ info }) => {
         toast.error(error.message);
       });
   };
+  const userInfo = useSelector(selectUserInfo);
 
   const renderButton = () => {
     if (loading) {
@@ -260,16 +455,30 @@ const EditEmployeeSalary = ({ info }) => {
             </h3>
             <div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
-                <TextField
-                  size="small"
-                  id="outlined-basic"
-                  label="Salary Amount"
-                  variant="outlined"
-                  className="w-[40%]"
-                  type={"number"}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
+                {userInfo?.role === "hr" ? (
+                  <TextField
+                    disabled
+                    id="outlined-disabled"
+                    size="small"
+                    label="Salary Amount"
+                    variant="outlined"
+                    className="w-[40%]"
+                    type={"number"}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                ) : (
+                  <TextField
+                    size="small"
+                    id="outlined-basic"
+                    label="Salary Amount"
+                    variant="outlined"
+                    className="w-[40%]"
+                    type={"number"}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                )}
                 <TextField
                   size="small"
                   id="outlined-select-currency"
@@ -279,9 +488,7 @@ const EditEmployeeSalary = ({ info }) => {
                   value={paymentMode}
                   onChange={(e) => setPayment(e.target.value)}
                 >
-                  <MenuItem value={1}>
-                    Once (30th end of the month)
-                  </MenuItem>
+                  <MenuItem value={1}>Once (30th end of the month)</MenuItem>
                   <MenuItem value={2}>Twice (15th and 30th)</MenuItem>
                 </TextField>
               </div>

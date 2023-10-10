@@ -7,7 +7,6 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Button, IconButton } from "@mui/material";
 import { useDispatch } from "react-redux";
-import { message } from "antd";
 import { addDesignations } from "../../features/settingSlice";
 import { toast } from "react-hot-toast";
 

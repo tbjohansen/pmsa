@@ -13,6 +13,8 @@ import Payroll from "../pages/payroll/Payroll";
 import Employee from "../pages/employees/Employee";
 import Asset from "../pages/assets/Asset";
 import Loan from "../pages/loans/Loan";
+import CashierPayroll from "../pages/payroll/CashierPayroll";
+import LoadingPage from "../pages/LoadingPage";
 
 const LoginElement = () => <Login />;
 // const DeviceElement = () => <DeviceInfo />;
@@ -83,6 +85,18 @@ const PayrollElement = () => (
   </AppLayout>
 );
 
+const CashierPayrollElement = () => (
+  <AppLayout>
+    <CashierPayroll />
+  </AppLayout>
+);
+
+const LoadingElement = () => (
+  <AppLayout>
+    <LoadingPage />
+  </AppLayout>
+);
+
 const App = () => {
   return (
     <React.Fragment>
@@ -94,7 +108,7 @@ const App = () => {
 
         <Route>
           <Route path="/" element={<DashboardElement />} />
-          {/* <Route path="/dashboard" element={<DashboardElement />} /> */}
+          <Route path="/loading" element={<LoadingElement />} />
           <Route path="/users" element={<UsersElement />} />
           <Route path="/settings" element={<SettingElement />} />
           <Route path="/assets" element={<AssetsElement />} />
@@ -102,6 +116,7 @@ const App = () => {
           <Route path="/profile" element={<ProfileElement />} />
           <Route path="/loans" element={<LoansElement />} />
           <Route path="/payroll" element={<PayrollElement />} />
+          <Route path="/cashier-payroll" element={<CashierPayrollElement />} />
 
           <Route path="/employees/:employeeID" element={<EmployeeElement />} />
           <Route path="/assets/:assetID" element={<AssetElement />} />

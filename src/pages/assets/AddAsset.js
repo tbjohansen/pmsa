@@ -13,7 +13,7 @@ import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Autocomplete, Button } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { addAssetTypes, selectAssetTypes } from "../../features/settingSlice";
 import { addAssets } from "../../features/assetSlice";
 

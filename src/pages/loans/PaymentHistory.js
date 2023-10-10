@@ -2,17 +2,11 @@ import React, { useEffect } from "react";
 import { db } from "../../App";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Table, Tag } from "antd";
-import { useNavigate, useParams } from "react-router-dom";
-import { IconButton } from "@mui/material";
-import { RemoveRedEye } from "@mui/icons-material";
-import AddLoan from "./AddLoan";
+import { Table } from "antd";
+import { useParams } from "react-router-dom";
 import {
-  addLoanDetails,
   addLoanPayments,
-  addLoans,
   selectLoanPayments,
-  selectLoans,
 } from "../../features/loanSlice";
 import moment from "moment";
 
@@ -26,92 +20,48 @@ const columns = [
     render: (text) => <>{text}</>,
   },
   {
-    title: "Employee",
-    key: "employee",
-    render: (_, loan) => (
+    title: "Paid Amount",
+    key: "amount",
+    render: (_, payment) => (
       <>
-        <p>{loan?.employeeName}</p>
-        <p className="capitalize">{loan?.employeeDesignation}</p>
+        <p>{formatter.format(payment?.paidAmout || 0)}</p>
       </>
     ),
   },
   {
-    title: "Amount",
-    dataIndex: "amount",
-    key: "amount",
-    render: (text) => <>TZS {formatter.format(text)}</>,
+    title: "Deducted Salary",
+    key: "salary",
+    render: (_, payment) => (
+      <>
+        <p>
+          {moment().month(payment?.month).format("MMMM")} {payment?.year}
+        </p>
+      </>
+    ),
   },
   {
     title: "Date",
-    dataIndex: "date",
     key: "date",
-    render: (date) => <>{moment.unix(date?.seconds).format("DD-MM-YYYY")}</>,
-  },
-  {
-    title: "Period",
-    dataIndex: "deductionMonths",
-    key: "deductionMonths",
-    render: (text) => <>{text} Months</>,
-  },
-  {
-    title: "Monthly Deduction",
-    dataIndex: "deductionAmount",
-    key: "deductionAmount",
-    render: (text) => <p>TZS {formatter.format(text)}</p>,
-  },
-  {
-    title: "Debt",
-    key: "debt",
-    dataIndex: "debt",
-    render: (_, { debt }) => (
+    render: (_, payment) => (
       <>
-        {debt == 0 ? (
-          <Tag color={"green"}>Paid</Tag>
-        ) : (
-          <p>TZS {formatter.format(debt)}</p>
-        )}
+        <p>{moment(payment?.created_at).format("DD-MM-YYYY")}</p>
       </>
-    ),
-  },
-  {
-    title: "Actions",
-    key: "action",
-    render: (_, loan) => (
-      <p className="flex flex-row gap-1 justify-start">
-        {/* <EditLoan loan={loan} /> */}
-        <ViewLoan loan={loan} />
-      </p>
     ),
   },
 ];
 
-const ViewLoan = ({ loan }) => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  const handleViewLoan = () => {
-    dispatch(addLoanDetails(loan));
-    navigate(`/loans/${loan?.id}`);
-  };
-
-  return (
-    <p className="mt-1">
-      <IconButton onClick={() => handleViewLoan()}>
-        <RemoveRedEye className="text-red-500 text-xl cursor-pointer" />
-      </IconButton>
-    </p>
-  );
-};
-
 const PaymentHistory = () => {
   const dispatch = useDispatch();
-  const {loanID} = useParams();
+  const { loanID } = useParams();
 
   useEffect(() => {
     const getPayments = async () => {
       let loansArray = [];
 
-      const q = query(collection(db, "loanPayments"), where("loanID", "==", loanID))
+      const q = query(
+        collection(db, "loanPayments"),
+        where("loanID", "==", loanID)
+      );
 
       const querySnapshot = await getDocs(q);
       querySnapshot.forEach((doc) => {
@@ -143,7 +93,7 @@ const PaymentHistory = () => {
           columns={columns}
           dataSource={sortedLoans}
           size="middle"
-          pagination={{ defaultPageSize: 6, size: "middle" }}
+          pagination={{ defaultPageSize: 10, size: "middle" }}
         />
       </div>
     </div>

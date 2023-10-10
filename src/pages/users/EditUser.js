@@ -104,24 +104,18 @@ const EditUser = ({user}) => {
 
       //update user
       const editUser = httpsCallable(functions, "updateUser");
-      editUser({ email, role: role?.label, roleID: role?.id, fullName, userID: user?.userID, status: user?.status, updated_at})
+      editUser({ email, role: role?.label, roleID: role?.id, fullName, userID: user?.userID, disabled: user?.status, status: user?.status, updated_at})
         .then((result) => {
           // Read result of the Cloud Function.
           const data = result.data;
           setLoading(false);
-          // setName("");
-          // setEmail("");
-          // setRole("");
 
           toast.success(data.message);
           //fetch users
           getUsers();
         })
         .catch((error) => {
-          // Getting the Error details.
-          const code = error.code;
           const message = error.message;
-          const details = error.details;
           setLoading(false);
           toast.error(message);
         });

@@ -26,7 +26,9 @@ initializeApp({
 const createUser = require("./createUser");
 const createNewUser = require("./createNewUser");
 const updateUser = require("./src/updateUser");
+const salaryPayment = require("./src/salaryPayment");
 
 exports.createUser = createUser.createUser;
 exports.createNewUser = createNewUser.createNewUser;
 exports.updateUser = updateUser.updateUser;
+exports.salaryPayment = salaryPayment.salaryPayment;

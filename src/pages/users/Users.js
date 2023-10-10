@@ -77,7 +77,7 @@ const UserStatus = ({ user }) => {
     const updated_at = Timestamp.fromDate(new Date());
 
     const updateStatus = httpsCallable(functions, "updateUser");
-    updateStatus({ email: user?.email, role: user?.role, roleID: user?.roleID, fullName: user?.fullName, userID: user?.userID, status: !user?.status, updated_at})
+    updateStatus({ email: user?.email, role: user?.role, roleID: user?.roleID, fullName: user?.fullName, userID: user?.userID, disabled:user?.status, status: !user?.status, updated_at})
       .then((result) => {
         // Read result of the Cloud Function.
         const data = result.data;
@@ -91,9 +91,9 @@ const UserStatus = ({ user }) => {
       })
       .catch((error) => {
         // Getting the Error details.
-        const code = error.code;
+        // const code = error.code;
         const message = error.message;
-        const details = error.details;
+        // const details = error.details;
         console.log(error);
         toast.error(message);
       });

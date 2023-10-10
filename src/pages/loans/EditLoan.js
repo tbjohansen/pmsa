@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { auth, db } from "../../App";
 import {
   collection,
-  setDoc,
   doc,
   getDocs,
   Timestamp,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import Box from "@mui/material/Box";
-import Add from "@mui/icons-material/Add";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
-import { Autocomplete, Button, IconButton } from "@mui/material";
+import { Autocomplete, Button, IconButton, MenuItem } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import { addLoans } from "../../features/loanSlice";
@@ -24,7 +24,7 @@ import { Edit } from "@mui/icons-material";
 
 const style = {
   position: "absolute",
-  top: "45%",
+  top: "48%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   width: 700,
@@ -33,18 +33,39 @@ const style = {
   p: 4,
 };
 
-const EditLoan = ({loan}) => {
+const EditLoan = ({ loan }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  const [employee, setEmployee] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(null);
-  const [deductionTime, setDeductionTime] = useState("");
-  const [deduction, setDeduction] = useState(0);
-  const [deductionAmount, setDeductionAmount] = useState("");
-  const [description, setDescription] = useState("");
+  const [employee, setEmployee] = useState({
+    id: loan?.employeeID,
+    label: `${loan?.employeeFirstName} ${loan?.employeeMiddleName} ${loan?.employeeLastName} (${loan?.employeeDesignation})`,
+    data: {
+      id: loan?.employeeID,
+      firstName: loan?.employeeFirstName,
+      middleName: loan?.employeeMiddleName,
+      lastName: loan?.employeeLastName,
+      designation: loan?.employeeDesignation,
+      paymentMode: loan?.employeePaymentMode,
+      salary: loan?.employeeSalary,
+    },
+  });
+  const [amount, setAmount] = useState(loan?.amount);
+  const [date, setDate] = useState(moment(loan?.date));
+  const [deductionTime, setDeductionTime] = useState(loan?.deductionTime);
+  const [deduction, setDeduction] = useState(loan?.deductionAmount);
+  const [deductionAmount, setDeductionAmount] = useState(
+    formatter.format(loan?.deductionAmount)
+  );
+  const [salaryDeduction, setSalaryDeduction] = useState(loan?.salaryDeduction);
+  const [midMonthDeduction, setMidDeduction] = useState(
+    loan?.midMonthDeduction
+  );
+  const [endMonthDeduction, setEndDeduction] = useState(
+    loan?.endMonthDeduction
+  );
+  const [description, setDescription] = useState(loan?.description);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -88,6 +109,30 @@ const EditLoan = ({loan}) => {
     getTotal();
   }, [amount, deductionTime]);
 
+  const getSalaryDeductionDetails = () => {
+    if (salaryDeduction && deduction) {
+      //check if salary deduction is mid, end or both
+      const half = parseInt(deduction) / 2;
+      if (salaryDeduction == 1) {
+        //mid month salary only
+        setMidDeduction(deduction);
+        setEndDeduction(0);
+      } else if (salaryDeduction == 3) {
+        //both mid and end
+        setMidDeduction(half);
+        setEndDeduction(half);
+      } else {
+        //end month salary only
+        setMidDeduction(0);
+        setEndDeduction(deduction);
+      }
+    }
+  };
+
+  useEffect(() => {
+    getSalaryDeductionDetails();
+  }, [salaryDeduction, deduction]);
+
   const employees = useSelector(selectEmployees);
   const sortedEmployees = employees.map((employee) => ({
     id: employee.id,
@@ -128,38 +173,51 @@ const EditLoan = ({loan}) => {
       toast.error("Please enter deduction months");
     } else if (!deduction) {
       toast.error("Please enter deduction amount");
+    } else if (employee?.data?.paymentMode == 2 && !salaryDeduction) {
+      toast.error("Please select salary for deduction");
     } else {
       //start registration
       setLoading(true);
-      try {
-        // Add a new document with a generated id
-        const dataRef = doc(collection(db, "loans"));
-        await setDoc(dataRef, {
-          employeeID: employee?.data?.id,
-          employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
-          employeeDesignation: employee?.data?.designation,
-          date: Timestamp.fromDate(new Date(date)),
-          amount: parseInt(amount),
-          deductionMonths: deductionTime,
-          deductionAmount: parseInt(deduction),
-          description,
-          id: dataRef.id,
-          paid: false,
-          paidAmount: 0,
-          debt: 0,
-          created_at: Timestamp.fromDate(new Date()),
-          updated_at: Timestamp.fromDate(new Date()),
-        })
-          .then(() => {
-            setLoanToEmployee({ loanID: dataRef.id });
+      //check if employee has salary details
+      if (employee?.data?.salary) {
+        try {
+          // Add a new document with a generated id
+          const dataRef = doc(db, "loans", loan?.id);
+          await updateDoc(dataRef, {
+            employeeID: employee?.data?.id,
+            employeeFirstName: employee?.data?.firstName,
+            employeeMiddleName: employee?.data?.middleName,
+            employeeLastName: employee?.data?.lastName,
+            employeeDesignation: employee?.data?.designation,
+            employeePaymentMode: employee?.data?.paymentMode,
+            employeeSalary: employee?.data?.salary,
+            date: Timestamp.fromDate(new Date(date)),
+            amount: parseInt(amount),
+            deductionMonths: deductionTime,
+            deductionAmount: parseInt(deduction),
+            midMonthDeduction: parseInt(midMonthDeduction),
+            endMonthDeduction: parseInt(endMonthDeduction),
+            description,
+            id: dataRef.id,
+            paid: false,
+            paidAmount: 0,
+            debt: parseInt(amount),
+            updated_at: Timestamp.fromDate(new Date()),
           })
-          .catch((error) => {
-            // console.error("Error removing document: ", error.message);
-            toast.error(error.message);
-            setLoading(false);
-          });
-      } catch (error) {
-        toast.error(error.message);
+            .then(() => {
+              setLoanToEmployee({ loanID: loan.id });
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+              setLoading(false);
+            });
+        } catch (error) {
+          toast.error(error.message);
+          setLoading(false);
+        }
+      } else {
+        toast.error("Sorry! Add employee salary details first to proceed");
         setLoading(false);
       }
     }
@@ -177,32 +235,36 @@ const EditLoan = ({loan}) => {
         "loans",
         loanID
       );
-      await setDoc(dataRef, {
+      await updateDoc(dataRef, {
         employeeID: employee?.data?.id,
-        employeeName: `${employee.data.firstName} ${employee.data.middleName} ${employee.data.lastName}`,
+        employeeFirstName: employee?.data?.firstName,
+        employeeMiddleName: employee?.data?.middleName,
+        employeeLastName: employee?.data?.lastName,
         employeeDesignation: employee?.data?.designation,
+        employeePaymentMode: employee?.data?.paymentMode,
+        employeeSalary: employee?.data?.salary,
         date: Timestamp.fromDate(new Date(date)),
         amount: parseInt(amount),
         deductionMonths: deductionTime,
         deductionAmount: parseInt(deduction),
+        midMonthDeduction: parseInt(midMonthDeduction),
+        endMonthDeduction: parseInt(endMonthDeduction),
         description,
         loanID,
         paid: false,
         paidAmount: 0,
-        debt: 0,
-        created_at: Timestamp.fromDate(new Date()),
+        debt: parseInt(amount),
         updated_at: Timestamp.fromDate(new Date()),
       })
         .then(() => {
-          setEmployee("");
-          setAmount("");
-          setDate(null);
-          setDeductionTime("");
-          setDeduction(0);
-          setDeductionAmount("");
-          setDescription("");
-
-          getLoans();
+          updateEmployeeSalaryDetails({
+            employeeID: employee?.id,
+            deductionAmount: parseInt(deduction),
+            loanAmount: parseInt(amount),
+            midDeduction: parseInt(midMonthDeduction),
+            endDeduction: parseInt(endMonthDeduction),
+            salaryDeduction,
+          });
         })
         .catch((error) => {
           // console.error("Error removing document: ", error.message);
@@ -212,6 +274,153 @@ const EditLoan = ({loan}) => {
     } catch (error) {
       console.log(error.message);
     }
+  };
+
+  const updateEmployeeSalaryDetails = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    midDeduction,
+    endDeduction,
+    salaryDeduction,
+  }) => {
+    //find loan difference
+    const amountDiff = loanAmount - loan.amount;
+    const deductionDiff = deductionAmount - loan.deductionAmount;
+    const midDeductionDiff = midDeduction - loan.midMonthDeduction;
+    const endDeductionDiff = endDeduction - loan.endMonthDeduction;
+
+    const dataRef = doc(
+      db,
+      "users",
+      "employees",
+      employeeID,
+      "public",
+      "account",
+      "info"
+    );
+    await updateDoc(dataRef, {
+      loan: increment(amountDiff),
+      loanStatus: true,
+      loanDeduction: increment(deductionDiff),
+      salaryToDeductLoan: salaryDeduction,
+      netSalary: increment(-deductionDiff),
+      midMonthNetSalary: increment(-midDeductionDiff),
+      endMonthNetSalary: increment(-endDeductionDiff),
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(async () => {
+        //update loan details on employee on bucket
+        const dataRef = doc(collection(db, "employeesBucket", employeeID));
+        await updateDoc(dataRef, {
+          loan: increment(amountDiff),
+          loanStatus: true,
+          loanDeduction: increment(deductionDiff),
+          salaryToDeductLoan: salaryDeduction,
+          netSalary: increment(-deductionDiff),
+          midMonthNetSalary: increment(-midDeductionDiff),
+          endMonthNetSalary: increment(-endDeductionDiff),
+          updated_at: Timestamp.fromDate(new Date()),
+        })
+          .then(() => {
+            //
+            checkDeductionEligibility({
+              employeeID,
+              deductionAmount: deductionDiff,
+              loanAmount: amountDiff,
+              midDeduction: midDeductionDiff,
+              endDeduction: endDeductionDiff,
+              salaryDeduction,
+            });
+          })
+          .catch((error) => {
+            setLoading(false);
+            toast.error(error.message);
+          });
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+        setLoading(false);
+      });
+  };
+
+  const checkDeductionEligibility = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    midDeduction,
+    endDeduction,
+    salaryDeduction,
+    employee,
+  }) => {
+    if (employee.payment === "end") {
+      //write into next month salary
+      updateEmployeeSalaryPath({
+        employeeID,
+        deductionAmount,
+        loanAmount,
+        midDeduction,
+        endDeduction,
+        salaryDeduction,
+      });
+    } else {
+      if (employee.payment === "half") {
+        //write deduction to current month end salary
+        updateEmployeeSalaryPath({
+          employeeID,
+          deductionAmount,
+          loanAmount,
+          midDeduction,
+          endDeduction,
+          salaryDeduction,
+        });
+      } else {
+        updateEmployeeSalaryPath({
+          employeeID,
+          deductionAmount,
+          loanAmount,
+          midDeduction,
+          endDeduction,
+          salaryDeduction,
+        });
+      }
+    }
+  };
+
+  const updateEmployeeSalaryPath = async ({
+    employeeID,
+    deductionAmount,
+    loanAmount,
+    midDeduction,
+    endDeduction,
+    salaryDeduction,
+  }) => {
+    //update loan details on employee on bucket
+    //check if mid month or end month salaries are paid
+    const dataRef = doc(collection(db, "salary", "year", "month", employeeID));
+    await updateDoc(dataRef, {
+      loan: increment(loanAmount),
+      loanStatus: true,
+      loanDeduction: increment(deductionAmount),
+      salaryToDeductLoan: salaryDeduction,
+      netSalary: increment(-deductionAmount),
+      midMonthNetSalary: increment(-midDeduction),
+      endMonthNetSalary: increment(-endDeduction),
+      midMonthLoanDeduction: increment(midDeduction),
+      endMonthLoanDeduction: increment(endDeduction),
+      updated_at: Timestamp.fromDate(new Date()),
+    })
+      .then(() => {
+        //
+        getLoans();
+
+        toast.success("Employee loan is updated successfully");
+      })
+      .catch((error) => {
+        setLoading(false);
+        toast.error(error.message);
+      });
   };
 
   const renderButton = () => {
@@ -321,6 +530,24 @@ const EditLoan = ({loan}) => {
                   onChange={(e) => setDeduction(e.target.value)}
                 />
               </div>
+              {employee?.data?.paymentMode == 2 ? (
+                <div className="w-full py-2 flex justify-center">
+                  <TextField
+                    id="outlined-select-currency"
+                    size="small"
+                    select
+                    label="Select Salary For Deduction"
+                    variant="outlined"
+                    className="w-[92%]"
+                    value={salaryDeduction}
+                    onChange={(e) => setSalaryDeduction(e.target.value)}
+                  >
+                    <MenuItem value={1}>Mid of the month salary</MenuItem>
+                    <MenuItem value={2}>End of the month salary</MenuItem>
+                    <MenuItem value={3}>Both mid and end of the month</MenuItem>
+                  </TextField>
+                </div>
+              ) : null}
               <div className="w-full py-2 flex justify-center">
                 <TextField
                   id="outlined-multiline-static"

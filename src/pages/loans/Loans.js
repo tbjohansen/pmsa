@@ -13,6 +13,7 @@ import {
   selectLoans,
 } from "../../features/loanSlice";
 import moment from "moment";
+import EditLoan from "./EditLoan";
 
 const formatter = new Intl.NumberFormat("en-US");
 
@@ -28,7 +29,7 @@ const columns = [
     key: "employee",
     render: (_, loan) => (
       <>
-        <p>{loan?.employeeName}</p>
+        <p>{`${loan?.employeeFirstName} ${loan?.employeeMiddleName} ${loan?.employeeLastName}`}</p>
         <p className="capitalize">{loan?.employeeDesignation}</p>
       </>
     ),
@@ -76,7 +77,7 @@ const columns = [
     key: "action",
     render: (_, loan) => (
       <p className="flex flex-row gap-1 justify-start">
-        {/* <EditLoan loan={loan} /> */}
+        <EditLoan loan={loan} />
         <ViewLoan loan={loan} />
       </p>
     ),
