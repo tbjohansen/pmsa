@@ -292,7 +292,7 @@ const SideBar = ({ handleDrawerToggle, mobileOpen }) => {
               <>
                 {userInfo?.role.toLowerCase() === "cashier" ? (
                   <>
-                    {links?.map((link) => (
+                    {cashierLinks?.map((link) => (
                       <NavLink to={link.url} key={link.id}>
                         {({ isActive }) => (
                           <SideNavListItem
@@ -334,7 +334,7 @@ const SideBar = ({ handleDrawerToggle, mobileOpen }) => {
                   </>
                 ) : (
                   <>
-                    {cashierLinks?.map((link) => (
+                    {links?.map((link) => (
                       <NavLink to={link.url} key={link.id}>
                         {({ isActive }) => (
                           <SideNavListItem
@@ -517,7 +517,7 @@ const SideBar = ({ handleDrawerToggle, mobileOpen }) => {
                   <>
                     {userInfo?.role.toLowerCase() === "cashier" ? (
                       <>
-                        {links?.map((link) => (
+                        {cashierLinks?.map((link) => (
                           <NavLink to={link.url} key={link.id}>
                             {({ isActive }) => (
                               <SideNavListItem
@@ -559,7 +559,7 @@ const SideBar = ({ handleDrawerToggle, mobileOpen }) => {
                       </>
                     ) : (
                       <>
-                        {cashierLinks?.map((link) => (
+                        {links?.map((link) => (
                           <NavLink to={link.url} key={link.id}>
                             {({ isActive }) => (
                               <SideNavListItem

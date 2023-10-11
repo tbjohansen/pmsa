@@ -29,7 +29,7 @@ const chartSetting = {
   height: 450,
   sx: {
     [`.${axisClasses.left} .${axisClasses.label}`]: {
-      transform: "rotate(-90deg) translate(0px, -20px)",
+      transform: "rotate(-90deg) translate(0px, -53px)",
     },
   },
 };
@@ -167,6 +167,7 @@ const Home = () => {
       querySnapshot.forEach((doc) => {
         //set data
         const data = doc.data();
+        // console.log(data);
         salaryArray.push(data);
       });
 
@@ -200,18 +201,16 @@ const Home = () => {
   );
 
   // Initialize an array to store sales for each month
-  const monthlySalaries = Array(12).fill(0);
+  const monthlySalaries = Array(13).fill(0);
 
-  payments.forEach((payment) => {
-    const month = payment?.month;
+  const data = payments.filter((payment) => {
 
-    monthlySalaries[month] += payment?.amount || 0;
+    const month = payment?.monthNumber;
+
+    monthlySalaries[month] += payment?.amount;
   });
 
-  const dataset = monthlySalaries.map((salaries, monthIndex) => ({
-    salaries,
-    month: getMonthName(monthIndex + 1), // Convert the month index to a month name
-  }));
+  // console.log(monthlySalaries);
 
   function getMonthName(monthIndex) {
     const months = [
@@ -228,8 +227,17 @@ const Home = () => {
       "Nov",
       "Dec",
     ];
-    return months[monthIndex - 1];
+    return months[monthIndex];
   }
+
+  const newMonthlySalaries = monthlySalaries.slice(1);
+
+  const dataset = newMonthlySalaries.map((salaries, monthIndex) => ({
+    salary: salaries, 
+    month: getMonthName(monthIndex)
+  }));
+
+  // console.log(dataset1);
 
   const valueFormatter = (value) => `${formatter.format(value)}`;
 
