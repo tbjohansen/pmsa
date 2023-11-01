@@ -142,7 +142,7 @@ const Loans = () => {
           columns={columns}
           dataSource={sortedLoans}
           size="middle"
-          pagination={{ defaultPageSize: 6, size: "middle" }}
+          pagination={{ defaultPageSize: 10, size: "middle" }}
         />
       </div>
     </div>

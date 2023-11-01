@@ -34,7 +34,7 @@ const EditUser = ({user}) => {
   const handleClose = () => setOpen(false);
 
   const [fullName, setName] = useState(user?.fullName);
-  const [role, setRole] = useState({id: user?.roleID, label: user?.roleName});
+  const [role, setRole] = useState({id: user?.roleID, label: user?.role});
   const [email, setEmail] = useState(user?.email);
   const [loading, setLoading] = useState(false);
 
@@ -103,7 +103,7 @@ const EditUser = ({user}) => {
       const updated_at = Timestamp.fromDate(new Date());
 
       //update user
-      const editUser = httpsCallable(functions, "updateUser");
+      const editUser = httpsCallable(functions, "updateuser");
       editUser({ email, role: role?.label, roleID: role?.id, fullName, userID: user?.userID, disabled: user?.status, status: user?.status, updated_at})
         .then((result) => {
           // Read result of the Cloud Function.

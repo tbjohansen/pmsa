@@ -43,6 +43,7 @@ const AddEmployee = () => {
   const [gender, setGender] = useState("");
   const [designation, setDesignation] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -119,6 +120,7 @@ const AddEmployee = () => {
         gender,
         email,
         phone,
+        role,
         employeeNumber,
         designation: designation?.label,
         designationID: designation?.id,
@@ -149,6 +151,7 @@ const AddEmployee = () => {
         gender,
         email,
         phone,
+        role,
         employeeNumber,
         designation: designation?.label,
         designationID: designation?.id,
@@ -165,6 +168,7 @@ const AddEmployee = () => {
         setPhone("");
         setEmail("");
         setDesignation("");
+        setRole("");
         getEmployees();
         toast.success("Employee is saved successfully");
         setLoading(false);
@@ -303,6 +307,19 @@ const AddEmployee = () => {
                     <TextField {...params} label="Select Designation" />
                   )}
                 />
+                <TextField
+                  size="small"
+                  id="outlined-select-currency"
+                  select
+                  label="Role"
+                  className="w-[82%]"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <MenuItem value={"driver"}>Driver</MenuItem>
+                  <MenuItem value={"mechanic"}>Mechanic</MenuItem>
+                  <MenuItem value={"turnboy"}>Turnboy</MenuItem>
+                </TextField>
               </div>
               <div className="w-full py-2 pt-3 flex justify-center">
                 {renderButton()}

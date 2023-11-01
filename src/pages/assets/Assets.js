@@ -191,7 +191,7 @@ const Assets = () => {
           columns={columns}
           dataSource={sortedAssets}
           size="middle"
-          pagination={{ defaultPageSize: 6, size: "middle" }}
+          pagination={{ defaultPageSize: 10, size: "middle" }}
         />
       </div>
     </div>

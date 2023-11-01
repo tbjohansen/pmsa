@@ -103,7 +103,7 @@ const AddUser = () => {
       const created_at = Timestamp.fromDate(new Date());
 
       //create user
-      const addUser = httpsCallable(functions, "createNewUser");
+      const addUser = httpsCallable(functions, "createnewuser");
       addUser({ email, role: role?.label, roleID: role?.id, fullName, created_at})
         .then((result) => {
           // Read result of the Cloud Function.

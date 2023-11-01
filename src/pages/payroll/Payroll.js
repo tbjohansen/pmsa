@@ -17,6 +17,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  increment,
   updateDoc,
 } from "firebase/firestore";
 import { addEmployees } from "../../features/employeeSlice";
@@ -35,6 +36,8 @@ import "jspdf-autotable";
 import { DownloadForOfflineOutlined } from "@mui/icons-material";
 import MidMonthTransactions from "./MidMonthTransactions";
 import EndMonthTransactions from "./EndMonthTransactions";
+import { addLoans, selectLoans } from "../../features/loanSlice";
+import { async } from "@firebase/util";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -104,7 +107,8 @@ const columns = [
     key: "deductions",
     render: (_, payroll) => (
       <>
-        <p>TZS {formatter.format(payroll?.deductionAmount || 0)}</p>
+        <DeductionAmount payroll={payroll} />
+        {/* <p>TZS {formatter.format(payroll?.deductionAmount || 0)}</p> */}
       </>
     ),
   },
@@ -143,6 +147,15 @@ const columns = [
   //   ),
   // },
 ];
+
+const DeductionAmount = ({ payroll }) => {
+  const totalAmount =
+    payroll?.deductionAmount +
+    payroll?.midMonthLoanDeduction +
+    payroll?.endMonthLoanDeduction;
+
+  return <p>TZS {formatter.format(totalAmount)}</p>;
+};
 
 const PaymentStatus = ({ payroll }) => {
   if (payroll?.payment === "full") {
@@ -247,6 +260,125 @@ const RemovePayroll = ({ employee }) => {
   );
 };
 
+const UpdateMonth = ({ payroll }) => {
+  const dispatch = useDispatch();
+
+  const month = "October";
+  const monthNumber = "10";
+  const year = "2023";
+
+  // console.log(employee);
+
+  const changeStatus = async () => {
+    payroll.forEach(async (data) => {
+      //
+      await updateDoc(doc(db, "employeesBucket", data?.employeeID), {
+        // loan: increment(data?.amount),
+        // loanStatus: true,
+        // salaryToDeductLoan: data?.salaryDeduction,
+        // loanDeduction: increment(data?.deductionAmount),
+        // netSalary: increment(-data?.deductionAmount),
+        midMonthLoanDeduction: increment(data?.midMonthDeduction),
+        endMonthLoanDeduction: increment(data?.endMonthDeduction),
+        midMonthNetSalary: increment(-data?.midMonthDeduction),
+        endMonthNetSalary: increment(-data?.endMonthDeduction),
+
+        // midMonthLoanDeduction: 0,
+        // endMonthLoanDeduction: 0,
+        // midMonthNetSalary: 0,
+        // endMonthNetSalary: 0,
+      })
+        .then(async () => {
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              "employees",
+              data.employeeID,
+              "public",
+              "account",
+              "info"
+            ),
+            {
+              // loan: increment(data?.amount),
+              // loanStatus: true,
+              // salaryToDeductLoan: data?.salaryDeduction,
+              // loanDeduction: increment(data?.deductionAmount),
+              // netSalary: increment(-data?.deductionAmount),
+              midMonthLoanDeduction: increment(data?.midMonthDeduction),
+              endMonthLoanDeduction: increment(data?.endMonthDeduction),
+              midMonthNetSalary: increment(-data?.midMonthDeduction),
+              endMonthNetSalary: increment(-data?.endMonthDeduction),
+
+              // midMonthLoanDeduction: 0,
+              // endMonthLoanDeduction: 0,
+              // midMonthNetSalary: 0,
+              // endMonthNetSalary: 0,
+            }
+          )
+            .then(() => {
+              updateEmployeeToPath({ data });
+            })
+            .catch((error) => {
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+            });
+        })
+        .catch((error) => {
+          // console.error("Error removing document: ", error.message);
+          toast.error(error.message);
+        });
+    });
+  };
+
+  const updateEmployeeToPath = async ({ data }) => {
+    // Add a new document with a generated id
+    await updateDoc(doc(db, "salaries", year, monthNumber, data?.employeeID), {
+      // loan: increment(data?.amount),
+      // loanStatus: true,
+      // salaryToDeductLoan: data?.salaryDeduction,
+      // loanDeduction: increment(data?.deductionAmount),
+      // netSalary: increment(-data?.deductionAmount),
+      midMonthLoanDeduction: increment(data?.midMonthDeduction),
+      endMonthLoanDeduction: increment(data?.endMonthDeduction),
+      midMonthNetSalary: increment(-data?.midMonthDeduction),
+      endMonthNetSalary: increment(-data?.endMonthDeduction),
+
+      // midMonthLoanDeduction: 0,
+      // endMonthLoanDeduction: 0,
+      // midMonthNetSalary: 0,
+      // endMonthNetSalary: 0,
+    })
+      .then(() => {
+        console.log("done");
+      })
+      .catch((error) => {
+        // console.error("Error removing document: ", error.message);
+        toast.error(error.message);
+      });
+  };
+
+  return (
+    <Popconfirm
+      title=""
+      description={`Are you sure to remove this employee on payroll this month?`}
+      okText="Yes"
+      cancelText="No"
+      okButtonProps={{
+        className: "bg-blue-500",
+      }}
+      onConfirm={changeStatus}
+    >
+      <button
+        type="button"
+        className="px-4 py-2 w-full border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+      >
+        UPDATE MONTH & YEAR
+      </button>
+    </Popconfirm>
+  );
+};
+
 const MonthSalaries = () => {
   const employees = useSelector(selectSalaries);
   const employeesList = employees
@@ -321,7 +453,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
     doc.setFontSize(16);
 
     // Add the heading
-    doc.text(`MONTHLY SALARIES AS OF ${month.toUppercase()} ${year}`, 50, 10);
+    doc.text(`MONTHLY SALARIES AS OF ${month.toUpperCase()} ${year}`, 50, 10);
 
     doc.setFontSize(12);
 
@@ -401,6 +533,8 @@ const Payroll = () => {
 
       if (salaryArray.length > 0) {
         dispatch(addSalaries(salaryArray));
+      } else {
+        dispatch(addSalaries([]));
       }
     };
 
@@ -418,13 +552,33 @@ const Payroll = () => {
 
       if (payrollArray.length > 0) {
         dispatch(addPayroll(payrollArray));
+      } else {
+        dispatch(addPayroll([]));
+      }
+    };
+
+    const getLoans = async () => {
+      let employeesArray = [];
+
+      const querySnapshot = await getDocs(collection(db, "loans"));
+      querySnapshot.forEach((doc) => {
+        //set data
+        const data = doc.data();
+        employeesArray.push(data);
+      });
+
+      if (employeesArray.length > 0) {
+        dispatch(addLoans(employeesArray));
       }
     };
 
     getEmployees();
     getMonthSalaries();
     getMonthPayroll();
+    getLoans();
   }, [dispatch]);
+
+  const loans = useSelector(selectLoans);
 
   const getFilteredMonthSalaries = async ({ dateMonth, dateYear }) => {
     let salaryArray = [];
@@ -435,7 +589,7 @@ const Payroll = () => {
     querySnapshot.forEach((doc) => {
       //set data
       const data = doc.data();
-      console.log(data);
+      // console.log(data);
       salaryArray.push(data);
     });
 
@@ -520,7 +674,11 @@ const Payroll = () => {
   );
 
   const totalDeductions = sortedEmployees.reduce(
-    (sum, employee) => sum + employee.deductionAmount,
+    (sum, employee) =>
+      sum +
+      employee.deductionAmount +
+      employee.midMonthLoanDeduction +
+      employee.endMonthLoanDeduction,
     0
   );
 
@@ -531,6 +689,12 @@ const Payroll = () => {
 
   const totalPAYEAmount = sortedEmployees.reduce(
     (sum, employee) => sum + employee.paye,
+    0
+  );
+
+  const totalLoanDeduction = sortedEmployees.reduce(
+    (sum, employee) =>
+      sum + employee.midMonthLoanDeduction + employee.endMonthLoanDeduction,
     0
   );
 
@@ -594,7 +758,9 @@ const Payroll = () => {
         />
       </div>
       <div className="flex flex-row justify-between py-2">
-        <div className="w-[60%]"></div>
+        <div className="w-[60%] flex justify-center items-center">
+          <h4>Total Employees : {sortedEmployees?.length || 0}</h4>
+        </div>
         <div className="w-[40%] flex flex-row gap-2 justify-between px-2 py-2">
           <div className="w-[100%]">
             <h4 className="py-2 px-2">Filter by Year :</h4>
@@ -620,10 +786,10 @@ const Payroll = () => {
         <div className="px-4">
           <div className="w-[100%] h-[30%] rounded-lg flex flex-row gap-2 justify-between bg-[#fcf8f8]">
             <div className="w-[50%] px-4 py-4 border-r-2 border-zinc-300 border-dashed">
-              <div className="flex flex-row gap-2 py-1">
+              {/* <div className="flex flex-row gap-2 py-1">
                 <p>Total Employees:</p>
                 <p className="capitalize">{sortedEmployees?.length || 0}</p>
-              </div>
+              </div> */}
               <div className="flex flex-row gap-2 py-1">
                 <p>Total Basic Salary Amount:</p>
                 <p className="capitalize">
@@ -640,6 +806,12 @@ const Payroll = () => {
                 <p>Total NSSF Deductions Amount:</p>
                 <p className="capitalize">
                   {formatter.format(totalNSSFDeductions)}
+                </p>
+              </div>
+              <div className="flex flex-row gap-2 py-1">
+                <p>Total Loan Deductions Amount:</p>
+                <p className="capitalize">
+                  {formatter.format(totalLoanDeduction)}
                 </p>
               </div>
             </div>
@@ -699,7 +871,9 @@ const Payroll = () => {
             <CustomTabPanel value={value} index={0}>
               {sortedEmployees.length > 0 ? (
                 <div className="flex flex-row justify-between">
-                  <div className="w-[80%]"></div>
+                  <div className="w-[80%]">
+                    {/* <UpdateMonth payroll={loans} /> */}
+                  </div>
                   <div className="w-[20%] text-sm">
                     <MonthPayrollPDF
                       employees={sortedEmployees}

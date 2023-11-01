@@ -14,21 +14,27 @@ setGlobalOptions({maxInstances: 10});
 const admin = require("firebase-admin");
 
 const serviceAccount = require("./env/hrmsmsa-196c7-a96bad1f2b96.json");
+const productionServiceAccount = require("./env/hrmsa-511f3-d1d612eef0a0.json");
 
+//development
+// initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+//   databaseURL: "https://hrmsmsa-196c7-default-rtdb.firebaseio.com",
+// });
+
+//production
 initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://hrmsmsa-196c7-default-rtdb.firebaseio.com",
+  credential: admin.credential.cert(productionServiceAccount),
+  databaseURL: "https://hrmsa-511f3-default-rtdb.firebaseio.com",
 });
 
 // const db = getFirestore();
 // const auth = getAuth();
 
-const createUser = require("./createUser");
+// const createUser = require("./createUser");
 const createNewUser = require("./createNewUser");
 const updateUser = require("./src/updateUser");
-const salaryPayment = require("./src/salaryPayment");
 
-exports.createUser = createUser.createUser;
-exports.createNewUser = createNewUser.createNewUser;
-exports.updateUser = updateUser.updateUser;
-exports.salaryPayment = salaryPayment.salaryPayment;
+// exports.createUser = createUser.createUser;
+exports.createnewuser = createNewUser.createNewUser;
+exports.updateuser = updateUser.updateUser;

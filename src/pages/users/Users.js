@@ -76,7 +76,7 @@ const UserStatus = ({ user }) => {
     //update user status
     const updated_at = Timestamp.fromDate(new Date());
 
-    const updateStatus = httpsCallable(functions, "updateUser");
+    const updateStatus = httpsCallable(functions, "updateuser");
     updateStatus({ email: user?.email, role: user?.role, roleID: user?.roleID, fullName: user?.fullName, userID: user?.userID, disabled:user?.status, status: !user?.status, updated_at})
       .then((result) => {
         // Read result of the Cloud Function.
@@ -160,7 +160,7 @@ const Users = () => {
           columns={columns}
           dataSource={sortedUsers}
           size="middle"
-          pagination={{ defaultPageSize: 6, size: "middle" }}
+          pagination={{ defaultPageSize: 10, size: "middle" }}
         />
       </div>
     </div>

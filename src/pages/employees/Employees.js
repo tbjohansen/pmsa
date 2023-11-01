@@ -132,8 +132,8 @@ const RegisterPayroll = ({ employee }) => {
 
   const changeStatus = async () => {
     await setDoc(doc(db, "salaries", year, monthNumber, employee.id), {
-      ...employee, payment: "none"
-    })
+      ...employee, payment: "none", year, month, monthNumber
+    }, {merge: true})
       .then(() => {
         updateEmployeeToPath(employee.id);
       })
@@ -305,7 +305,7 @@ const Employees = () => {
           columns={columns}
           dataSource={sortedEmployees}
           size="middle"
-          pagination={{ defaultPageSize: 6, size: "middle" }}
+          pagination={{ defaultPageSize: 10, size: "middle" }}
         />
       </div>
     </div>

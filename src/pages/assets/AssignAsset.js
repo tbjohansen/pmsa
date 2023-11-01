@@ -107,7 +107,7 @@ const AssignAsset = ({ asset }) => {
     let assetArray = [];
 
     const querySnapshot = await getDocs(
-      collection(db, "assets", assetID, "assignments")
+      collection(db, "assets", assetID, "assigned")
     );
     querySnapshot.forEach((doc) => {
       //set data
@@ -235,6 +235,8 @@ const AssignAsset = ({ asset }) => {
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(() => {
+        getAssetDetails();
+        getAssetHistory();
         setEmployee("");
         setDate(null);
         setDescription("");
@@ -242,8 +244,6 @@ const AssignAsset = ({ asset }) => {
         toast.success("Asset is assgned to employee successfully");
         setLoading(false);
 
-        getAssetDetails();
-        getAssetHistory();
       })
       .catch((error) => {
         // console.error("Error removing document: ", error.message);

@@ -455,7 +455,7 @@ const EditEmployeeSalary = ({ info }) => {
             </h3>
             <div>
               <div className="w-full py-2 flex flex-row gap-2 justify-center">
-                {userInfo?.role === "hr" ? (
+                {userInfo?.role.toLowerCase() === "hr" ? (
                   <TextField
                     disabled
                     id="outlined-disabled"

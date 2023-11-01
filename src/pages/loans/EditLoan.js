@@ -7,6 +7,7 @@ import {
   Timestamp,
   updateDoc,
   increment,
+  getDoc,
 } from "firebase/firestore";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
@@ -55,9 +56,7 @@ const EditLoan = ({ loan }) => {
   const [date, setDate] = useState(moment(loan?.date));
   const [deductionTime, setDeductionTime] = useState(loan?.deductionTime);
   const [deduction, setDeduction] = useState(loan?.deductionAmount);
-  const [deductionAmount, setDeductionAmount] = useState(
-    formatter.format(loan?.deductionAmount)
-  );
+  const [deductionAmount, setDeductionAmount] = useState(loan?.deductionAmount);
   const [salaryDeduction, setSalaryDeduction] = useState(loan?.salaryDeduction);
   const [midMonthDeduction, setMidDeduction] = useState(
     loan?.midMonthDeduction
@@ -307,11 +306,13 @@ const EditLoan = ({ loan }) => {
       netSalary: increment(-deductionDiff),
       midMonthNetSalary: increment(-midDeductionDiff),
       endMonthNetSalary: increment(-endDeductionDiff),
+      midMonthLoanDeduction: increment(midDeductionDiff),
+      endMonthLoanDeduction: increment(endDeductionDiff),
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(async () => {
         //update loan details on employee on bucket
-        const dataRef = doc(collection(db, "employeesBucket", employeeID));
+        const dataRef = doc(db, "employeesBucket", employeeID);
         await updateDoc(dataRef, {
           loan: increment(amountDiff),
           loanStatus: true,
@@ -320,6 +321,8 @@ const EditLoan = ({ loan }) => {
           netSalary: increment(-deductionDiff),
           midMonthNetSalary: increment(-midDeductionDiff),
           endMonthNetSalary: increment(-endDeductionDiff),
+          midMonthLoanDeduction: increment(midDeductionDiff),
+          endMonthLoanDeduction: increment(endDeductionDiff),
           updated_at: Timestamp.fromDate(new Date()),
         })
           .then(() => {
@@ -352,21 +355,16 @@ const EditLoan = ({ loan }) => {
     midDeduction,
     endDeduction,
     salaryDeduction,
-    employee,
   }) => {
-    if (employee.payment === "end") {
-      //write into next month salary
-      updateEmployeeSalaryPath({
-        employeeID,
-        deductionAmount,
-        loanAmount,
-        midDeduction,
-        endDeduction,
-        salaryDeduction,
-      });
-    } else {
-      if (employee.payment === "half") {
-        //write deduction to current month end salary
+    //fetch app setting
+    const docRef = doc(db, "app", "system");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+
+      if (employee.paymentMode === 2) {
+        //write into next month salary
         updateEmployeeSalaryPath({
           employeeID,
           deductionAmount,
@@ -374,16 +372,34 @@ const EditLoan = ({ loan }) => {
           midDeduction,
           endDeduction,
           salaryDeduction,
+          month: data.nextMonth,
+          year: data.nextYear,
         });
       } else {
-        updateEmployeeSalaryPath({
-          employeeID,
-          deductionAmount,
-          loanAmount,
-          midDeduction,
-          endDeduction,
-          salaryDeduction,
-        });
+        if (employee.paymentMode === 1) {
+          //write deduction to current month end salary
+          updateEmployeeSalaryPath({
+            employeeID,
+            deductionAmount,
+            loanAmount,
+            midDeduction,
+            endDeduction,
+            salaryDeduction,
+            month: data.month,
+            year: data.year,
+          });
+        } else {
+          updateEmployeeSalaryPath({
+            employeeID,
+            deductionAmount,
+            loanAmount,
+            midDeduction,
+            endDeduction,
+            salaryDeduction,
+            month: data.month,
+            year: data.year,
+          });
+        }
       }
     }
   };
@@ -395,10 +411,12 @@ const EditLoan = ({ loan }) => {
     midDeduction,
     endDeduction,
     salaryDeduction,
+    month,
+    year,
   }) => {
     //update loan details on employee on bucket
     //check if mid month or end month salaries are paid
-    const dataRef = doc(collection(db, "salary", "year", "month", employeeID));
+    const dataRef = doc(db, "salaries", year, month, employeeID);
     await updateDoc(dataRef, {
       loan: increment(loanAmount),
       loanStatus: true,
@@ -415,6 +433,7 @@ const EditLoan = ({ loan }) => {
         //
         getLoans();
 
+        setLoading(false);
         toast.success("Employee loan is updated successfully");
       })
       .catch((error) => {

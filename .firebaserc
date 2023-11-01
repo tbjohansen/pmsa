@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "hrmsmsa-196c7"
-  }
+    "default": "hrmsmsa-196c7",
+    "hmrsa": "hrmsa-511f3"
+  },
+  "targets": {},
+  "etags": {}
 }

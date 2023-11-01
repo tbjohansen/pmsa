@@ -46,6 +46,7 @@ const EditEmployee = ({ employee }) => {
     label: employee?.designation,
   });
   const [email, setEmail] = useState(employee?.email);
+  const [role, setRole] = useState(employee?.role || "");
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -120,13 +121,14 @@ const EditEmployee = ({ employee }) => {
         gender,
         email,
         phone,
+        role,
         designation: designation?.label,
         designationID: designation?.id,
         updated_at: Timestamp.fromDate(new Date()),
       })
         .then(() => {
           //
-          editEmployeeToPath({id: employee?.id});
+          editEmployeeToPath({ id: employee?.id });
         })
         .catch((error) => {
           setLoading(false);
@@ -136,9 +138,17 @@ const EditEmployee = ({ employee }) => {
     }
   };
 
-  const editEmployeeToPath = async ({id}) => {
+  const editEmployeeToPath = async ({ id }) => {
     //
-    const dataRef = doc(db, "users", "employees", id, "public", "account", "info");
+    const dataRef = doc(
+      db,
+      "users",
+      "employees",
+      id,
+      "public",
+      "account",
+      "info"
+    );
     await updateDoc(dataRef, {
       firstName,
       middleName,
@@ -146,6 +156,7 @@ const EditEmployee = ({ employee }) => {
       gender,
       email,
       phone,
+      role,
       designation: designation?.label,
       designationID: designation?.id,
       updated_at: Timestamp.fromDate(new Date()),
@@ -286,6 +297,19 @@ const EditEmployee = ({ employee }) => {
                     <TextField {...params} label="Select Designation" />
                   )}
                 />
+                <TextField
+                  size="small"
+                  id="outlined-select-currency"
+                  select
+                  label="Role"
+                  className="w-[82%]"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <MenuItem value={"driver"}>Driver</MenuItem>
+                  <MenuItem value={"mechanic"}>Mechanic</MenuItem>
+                  <MenuItem value={"turnboy"}>Turnboy</MenuItem>
+                </TextField>
               </div>
               <div className="w-full py-2 pt-3 flex justify-center">
                 {renderButton()}

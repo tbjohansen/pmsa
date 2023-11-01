@@ -9,11 +9,14 @@ import { addSalaries, selectSalaries } from "../../features/payrollSlice";
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   increment,
+  query,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "../../App";
 import { getFunctions, httpsCallable } from "firebase/functions";
@@ -69,7 +72,7 @@ const columns = [
     key: "deductions",
     render: (_, payroll) => (
       <>
-        <p>TZS {formatter.format(payroll?.deductionAmount || 0)}</p>
+        <DeductionAmount payroll={payroll} />
       </>
     ),
   },
@@ -113,9 +116,21 @@ const columns = [
   // },
 ];
 
+const DeductionAmount = ({ payroll }) => {
+  const totalAmount =
+    payroll?.deductionAmount || 0 + payroll?.midMonthLoanDeduction || 0;
+
+  return <p>TZS {formatter.format(totalAmount)}</p>;
+};
+
+const MidSalary = ({ payroll }) => {
+  const salary = payroll.netSalary / 2;
+  return <p>TZS {formatter.format(payroll?.midMonthNetSalary || salary)}</p>;
+};
+
 const MonthPayrollPDF = ({ employees, month, year }) => {
   const totalNetSalary = employees.reduce(
-    (sum, employee) => sum + employee.netSalary,
+    (sum, employee) => sum + employee.midMonthNetSalary,
     0
   );
 
@@ -147,7 +162,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
         formatter.format(employee.midMonthSalary),
         formatter.format(employee.paye),
         formatter.format(employee.nssfAmount),
-        formatter.format(employee.midMonthLoanDeduction),
+        formatter.format(employee?.midMonthLoanDeduction || 0),
         formatter.format(employee.midMonthNetSalary),
       ];
       dataRows.push(dataRow);
@@ -207,9 +222,9 @@ const PaySalary = ({ payroll }) => {
 
   const functions = getFunctions();
 
-  const month = moment().format("MMMM");
-  const monthNumber = moment().month(month).format("M");
-  const year = moment().format("YYYY");
+  const month = payroll?.month;
+  const monthNumber = payroll?.monthNumber;
+  const year = payroll?.year;
 
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
@@ -283,7 +298,7 @@ const PaySalary = ({ payroll }) => {
         updateSalariesToPath({ payroll });
       }
     } else {
-      console.log(payroll.payment);
+      // console.log(payroll.payment);
       toast.error("Sorry! Employee mid month salary is alredy paid");
     }
   };
@@ -350,18 +365,25 @@ const PaySalary = ({ payroll }) => {
     })
       .then(async () => {
         //get active loans
-        const querySnapshot = await getDocs(
-          collection(db, "users", "employees", payroll.id, "public", "loans")
+        const q = query(
+          collection(db, "users", "employees", payroll.id, "public", "loans"),
+          where("salaryDeduction", "in", [1, 3])
         );
+
+        const querySnapshot = await getDocs(q);
+
         if (querySnapshot.size > 0) {
           querySnapshot.forEach((doc) => {
             //set data
             const data = doc.data();
 
-            updateEmployeeLoanPaths({ payroll, loan: data });
+            if (data?.debt > 0 && data?.paid == false) {
+              // console.log(data);
+              updateEmployeeLoanPaths({ payroll, loan: data });
+            }
           });
         } else {
-          updateEmployeeToPath({ payroll });
+          updateEmployeeToPath({ payroll, loan: {}, paid: false });
         }
       })
       .catch((error) => {
@@ -373,30 +395,30 @@ const PaySalary = ({ payroll }) => {
 
   const updateEmployeeLoanPaths = async ({ payroll, loan }) => {
     let paid = false;
-    const amountPaid = loan.paidAmout + loan.deductionAmount;
+    const amountPaid = loan.paidAmout + loan.midMonthDeduction;
 
     if (amountPaid >= loan.amount) {
       paid = true;
     }
 
     await updateDoc(
-      doc(db, "users", "employees", payroll.id, "public", "loans", loan.id),
+      doc(db, "users", "employees", payroll.id, "public", "loans", loan.loanID),
       {
-        debt: increment(-loan.deductionAmount),
+        debt: increment(-loan.midMonthDeduction),
         paidAmout: amountPaid,
         paid,
         updated_at: Timestamp.fromDate(new Date()),
       }
     )
       .then(async () => {
-        await updateDoc(doc(db, "loans", loan?.id), {
-          debt: increment(-loan.deductionAmount),
+        await updateDoc(doc(db, "loans", loan?.loanID), {
+          debt: increment(-loan.midMonthDeduction),
           paidAmout: amountPaid,
           paid,
           updated_at: Timestamp.fromDate(new Date()),
         })
           .then(() => {
-            setLoanPayment({ loan, payroll });
+            setLoanPayment({ loan, payroll, paid });
           })
           .catch((error) => {
             setLoading(false);
@@ -411,20 +433,21 @@ const PaySalary = ({ payroll }) => {
       });
   };
 
-  const setLoanPayment = async ({ loan, payroll }) => {
+  const setLoanPayment = async ({ loan, payroll, paid }) => {
     const path = doc(collection(db, "loanPayments"));
     await setDoc(path, {
-      loanID: loan.id,
+      loanID: loan.loanID,
       id: path.id,
-      paidAmout: loan.deductionAmount,
+      paidAmount: loan.midMonthDeduction,
       month,
       year,
+      description: "Mid of the month deduction",
       created_at: Timestamp.fromDate(new Date()),
       updated_at: Timestamp.fromDate(new Date()),
     })
       .then(() => {
         //
-        updateEmployeeToPath({ payroll });
+        updateEmployeeToPath({ loan, payroll, paid });
       })
       .catch((error) => {
         setLoading(false);
@@ -433,42 +456,185 @@ const PaySalary = ({ payroll }) => {
       });
   };
 
-  const updateEmployeeToPath = async ({ payroll }) => {
-    // Add a new document with a generated id
-    await updateDoc(
-      doc(db, "users", "employees", payroll.id, "public", "account", "info"),
-      {
-        payment: "half",
-        loan: increment(-payroll?.midMonthLoanDeduction || 0),
-      }
-    )
-      .then(async () => {
-        await updateDoc(doc(db, "employeesBucket", payroll?.id), {
-          payment: "half",
-          loan: increment(-payroll?.midMonthLoanDeduction || 0),
-        })
-          .then(() => {
-            getEmployees();
+  const updateEmployeeToPath = async ({ loan, payroll, paid }) => {
+    // fetch employee details
+    const docRef = doc(db, "employeesBucket", payroll?.id);
+    const docSnap = await getDoc(docRef);
 
-            setPayment("");
-            setBank("");
-            setMobile("");
-            setDescription("");
-            setLoading(false);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
 
-            toast.success("Employee mid month salary is paid successfully");
+      const debt = data?.loan - payroll?.midMonthLoanDeduction;
+
+      if (debt > 0) {
+        //there is still loan debt
+        //check if loan is fully paid
+        if (paid) {
+          //yes
+          //remove loan deductions
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              "employees",
+              payroll.id,
+              "public",
+              "account",
+              "info"
+            ),
+            {
+              payment: "half",
+              loan: increment(-payroll?.midMonthLoanDeduction || 0),
+              loanDeduction: increment(-loan?.deductionAmount || 0),
+              netSalary: increment(loan?.deductionAmount || 0),
+              midMonthNetSalary: increment(loan?.midMonthDeduction || 0),
+              endMonthNetSalary: increment(loan?.endMonthDeduction || 0),
+              midMonthLoanDeduction: increment(-loan?.midMonthDeduction || 0),
+              endMonthLoanDeduction: increment(-loan?.endMonthDeduction || 0),
+            }
+          )
+            .then(async () => {
+              await updateDoc(doc(db, "employeesBucket", payroll?.id), {
+                payment: "half",
+                loan: increment(-payroll?.midMonthLoanDeduction || 0),
+                loanDeduction: increment(-loan?.deductionAmount || 0),
+                netSalary: increment(loan?.deductionAmount || 0),
+                midMonthNetSalary: increment(loan?.midMonthDeduction || 0),
+                endMonthNetSalary: increment(loan?.endMonthDeduction || 0),
+                midMonthLoanDeduction: increment(-loan?.midMonthDeduction || 0),
+                endMonthLoanDeduction: increment(-loan?.endMonthDeduction || 0),
+              })
+                .then(() => {
+                  getEmployees();
+
+                  setPayment("");
+                  setBank("");
+                  setMobile("");
+                  setDescription("");
+                  setLoading(false);
+
+                  toast.success(
+                    "Employee mid month salary is paid successfully"
+                  );
+                })
+                .catch((error) => {
+                  setLoading(false);
+                  // console.error("Error removing document: ", error.message);
+                  toast.error(error.message);
+                });
+            })
+            .catch((error) => {
+              setLoading(false);
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+            });
+        } else {
+          //no
+          await updateDoc(
+            doc(
+              db,
+              "users",
+              "employees",
+              payroll.id,
+              "public",
+              "account",
+              "info"
+            ),
+            {
+              payment: "half",
+              loan: increment(-payroll?.midMonthLoanDeduction || 0),
+            }
+          )
+            .then(async () => {
+              await updateDoc(doc(db, "employeesBucket", payroll?.id), {
+                payment: "half",
+                loan: increment(-payroll?.midMonthLoanDeduction || 0),
+              })
+                .then(() => {
+                  getEmployees();
+
+                  setPayment("");
+                  setBank("");
+                  setMobile("");
+                  setDescription("");
+                  setLoading(false);
+
+                  toast.success(
+                    "Employee mid month salary is paid successfully"
+                  );
+                })
+                .catch((error) => {
+                  setLoading(false);
+                  // console.error("Error removing document: ", error.message);
+                  toast.error(error.message);
+                });
+            })
+            .catch((error) => {
+              setLoading(false);
+              // console.error("Error removing document: ", error.message);
+              toast.error(error.message);
+            });
+        }
+      } else {
+        //loan debt is cleared
+        await updateDoc(
+          doc(
+            db,
+            "users",
+            "employees",
+            payroll.id,
+            "public",
+            "account",
+            "info"
+          ),
+          {
+            payment: "half",
+            loan: increment(-payroll?.midMonthLoanDeduction || 0),
+            loanStatus: false,
+            loanDeduction: 0,
+            midMonthLoanDeduction: 0,
+            endMonthLoanDeduction: 0,
+            netSalary: increment(payroll?.loanAmount || 0),
+            midMonthNetSalary: increment(payroll?.midMonthLoanDeduction || 0),
+            endMonthNetSalary: increment(payroll?.endMonthLoanDeduction || 0),
+          }
+        )
+          .then(async () => {
+            await updateDoc(doc(db, "employeesBucket", payroll?.id), {
+              payment: "half",
+              loan: increment(-payroll?.midMonthLoanDeduction || 0),
+              loanStatus: false,
+              loanDeduction: 0,
+              midMonthLoanDeduction: 0,
+              endMonthLoanDeduction: 0,
+              netSalary: increment(payroll?.loanAmount || 0),
+              midMonthNetSalary: increment(payroll?.midMonthLoanDeduction || 0),
+              endMonthNetSalary: increment(payroll?.endMonthLoanDeduction || 0),
+            })
+              .then(() => {
+                getEmployees();
+
+                setPayment("");
+                setBank("");
+                setMobile("");
+                setDescription("");
+                setLoading(false);
+
+                toast.success("Employee mid month salary is paid successfully");
+              })
+              .catch((error) => {
+                setLoading(false);
+                // console.error("Error removing document: ", error.message);
+                toast.error(error.message);
+              });
           })
           .catch((error) => {
             setLoading(false);
             // console.error("Error removing document: ", error.message);
             toast.error(error.message);
           });
-      })
-      .catch((error) => {
-        setLoading(false);
-        // console.error("Error removing document: ", error.message);
-        toast.error(error.message);
-      });
+      }
+    }
   };
 
   const renderButton = () => {
@@ -594,11 +760,6 @@ const PaySalary = ({ payroll }) => {
       </Modal>
     </div>
   );
-};
-
-const MidSalary = ({ payroll }) => {
-  const salary = payroll.netSalary / 2;
-  return <p>TZS {formatter.format(salary || 0)}</p>;
 };
 
 const MidMonthPayroll = ({ label, yearValue }) => {
