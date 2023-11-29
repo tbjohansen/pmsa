@@ -198,6 +198,7 @@ const Employee = () => {
             </p>
             <p className="py-0.5">{employeeDetails?.designation}</p>
             <p className="py-0.5">Employee ID : {employeeDetails?.employeeNumber}</p>
+            <p className="py-0.5">Employee Role : {employeeDetails?.role}</p>
           </div>
         </div>
         <div className="w-[50%] px-4 py-4">

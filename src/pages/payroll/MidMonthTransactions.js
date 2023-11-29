@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Table } from "antd";
 import { useSelector } from "react-redux";
 import { selectPayroll } from "../../features/payrollSlice";
@@ -6,6 +6,7 @@ import moment from "moment";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { DownloadForOfflineOutlined } from "@mui/icons-material";
+import { MenuItem, TextField } from "@mui/material";
 
 const formatter = new Intl.NumberFormat("en-US");
 
@@ -120,11 +121,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
     doc.setFontSize(16);
 
     // Add the heading
-    doc.text(
-      `PAID SALARIES AS OF MID ${month.toUpperCase()} ${year}`,
-      50,
-      10
-    );
+    doc.text(`PAID SALARIES AS OF MID ${month.toUpperCase()} ${year}`, 50, 10);
 
     doc.setFontSize(12);
 
@@ -157,10 +154,12 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
   );
 };
 
-const MidMonthTransactions = ({label, yearValue}) => {
+const MidMonthTransactions = ({ label, yearValue }) => {
+  const [role, setRole] = useState("");
+
   const employees = useSelector(selectPayroll);
   const midMonthEmployees = employees.filter(
-    (employee) => employee.payment == "half"
+    (employee) => employee.payment === "half"
   );
   const employeesList = midMonthEmployees
     .slice()
@@ -170,18 +169,49 @@ const MidMonthTransactions = ({label, yearValue}) => {
     return { ...employee, key };
   });
 
+  const categoryEmployees = employeesList.filter(
+    (employee) => employee?.role === role
+  );
+
+  const filteredEmployees = categoryEmployees.map((employee, index) => {
+    const key = index + 1;
+    return { ...employee, key };
+  });
+
   return (
     <div>
       <div>
         {sortedEmployees.length > 0 ? (
           <div className="flex flex-row justify-between">
-            <div className="w-[80%]"></div>
-            <div className="w-[20%] text-sm">
-              <MonthPayrollPDF
-                employees={sortedEmployees}
-                year={yearValue}
-                month={label}
-              />
+            <div className="w-[60%]"></div>
+            <div className="w-[40%] text-sm flex flex-row gap-2">
+              <TextField
+                size="small"
+                id="outlined-select-currency"
+                select
+                label="Role"
+                className="w-[82%]"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <MenuItem value={""}>All</MenuItem>
+                <MenuItem value={"driver"}>Driver</MenuItem>
+                <MenuItem value={"mechanic"}>Mechanic</MenuItem>
+                <MenuItem value={"turnboy"}>Turnboy</MenuItem>
+              </TextField>
+              {role ? (
+                <MonthPayrollPDF
+                  employees={filteredEmployees}
+                  year={yearValue}
+                  month={label}
+                />
+              ) : (
+                <MonthPayrollPDF
+                  employees={sortedEmployees}
+                  year={yearValue}
+                  month={label}
+                />
+              )}
             </div>
           </div>
         ) : null}
