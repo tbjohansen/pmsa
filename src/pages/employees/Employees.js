@@ -1,12 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { db } from "../../App";
-import { collection, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Popconfirm, Switch, Table, Tag } from "antd";
+import { Popconfirm, Switch, Table, Tag, Space, Input } from "antd";
 import {
   addEmployees,
   addEmployeesDetails,
+  addFilteredEmployees,
   selectEmployees,
+  selectFilteredEmployees,
 } from "../../features/employeeSlice";
 import AddEmployee from "./AddEmployee";
 import toast from "react-hot-toast";
@@ -15,6 +23,8 @@ import { RemoveRedEye } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { IconButton } from "@mui/material";
 import moment from "moment";
+
+const { Search } = Input;
 
 const columns = [
   {
@@ -70,11 +80,18 @@ const columns = [
     key: "payroll",
     render: (_, employee) => (
       <>
-       {employee?.salary? <> {employee?.payroll ? (
-          <Tag color={"green"}>Registered</Tag>
+        {employee?.salary ? (
+          <>
+            {" "}
+            {employee?.payroll ? (
+              <Tag color={"green"}>Registered</Tag>
+            ) : (
+              <RegisterPayroll employee={employee} />
+            )}
+          </>
         ) : (
-          <RegisterPayroll employee={employee} />
-        )}</> : <p className="text-xs">Add salary details</p>}
+          <p className="text-xs">Add salary details</p>
+        )}
       </>
     ),
   },
@@ -131,9 +148,17 @@ const RegisterPayroll = ({ employee }) => {
   };
 
   const changeStatus = async () => {
-    await setDoc(doc(db, "salaries", year, monthNumber, employee.id), {
-      ...employee, payment: "none", year, month, monthNumber
-    }, {merge: true})
+    await setDoc(
+      doc(db, "salaries", year, monthNumber, employee.id),
+      {
+        ...employee,
+        payment: "none",
+        year,
+        month,
+        monthNumber,
+      },
+      { merge: true }
+    )
       .then(() => {
         updateEmployeeToPath(employee.id);
       })
@@ -266,6 +291,9 @@ const EmployeeStatus = ({ employee }) => {
 const Employees = () => {
   const dispatch = useDispatch();
 
+  const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState(false);
+
   useEffect(() => {
     const getEmployees = async () => {
       let employeesArray = [];
@@ -295,18 +323,87 @@ const Employees = () => {
     return { ...employee, key };
   });
 
+  const handleOnSearchChange = () => {
+    if (searchText) {
+      const text = searchText.toLocaleLowerCase();
+      const searchedEmployees = employees.filter((employee) => {
+        const firstName = employee?.firstName.toLocaleLowerCase();
+        const middleName = employee?.middleName.toLocaleLowerCase();
+        const lastName = employee?.lastName.toLocaleLowerCase();
+
+        if (
+          firstName.includes(text) ||
+          middleName.includes(text) ||
+          lastName.includes(text)
+        ) {
+          return employee;
+        }
+      });
+
+      // Update state with filtered employees
+      dispatch(addFilteredEmployees(searchedEmployees));
+      setFilters(true);
+    } else {
+      // Update state with filtered employees
+      dispatch(addFilteredEmployees([]));
+      setFilters(false);
+    }
+  };
+
+  const handleSearchText = (value) => {
+    if (value) {
+      setSearchText(value);
+    } else {
+      // Update state with filtered categories
+      dispatch(addFilteredEmployees([]));
+      setFilters(false);
+      setSearchText(value);
+    }
+  };
+
+  const filteredEmployees = useSelector(selectFilteredEmployees);
+
+  const allFilteredEmployees = filteredEmployees
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const sortedFilteredEmployees = allFilteredEmployees.map(
+    (employee, index) => {
+      const key = index + 1;
+      return { ...employee, key };
+    }
+  );
+
   return (
     <div className="px-2">
-      <div className="flex flex-row justify-end">
+      <div className="flex flex-row gap-8 justify-end items-end py-4 px-2">
+        <div>
+          <Space.Compact size="large">
+            <Search
+              placeholder="Search employee name"
+              allowClear
+              onChange={(e) => handleSearchText(e.target.value)}
+              onSearch={() => handleOnSearchChange()}
+            />
+          </Space.Compact>
+        </div>
         <AddEmployee />
       </div>
       <div className="pt-8">
-        <Table
-          columns={columns}
-          dataSource={sortedEmployees}
-          size="middle"
-          pagination={{ defaultPageSize: 10, size: "middle" }}
-        />
+        {filters ? (
+          <Table
+            columns={columns}
+            dataSource={sortedFilteredEmployees}
+            size="middle"
+            pagination={{ defaultPageSize: 15, size: "middle" }}
+          />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={sortedEmployees}
+            size="middle"
+            pagination={{ defaultPageSize: 15, size: "middle" }}
+          />
+        )}
       </div>
     </div>
   );

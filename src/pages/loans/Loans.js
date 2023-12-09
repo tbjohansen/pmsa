@@ -1,19 +1,23 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { db } from "../../App";
 import { collection, getDocs } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
-import { Table, Tag } from "antd";
+import { Table, Tag, Space, Input } from "antd";
 import { useNavigate } from "react-router-dom";
 import { IconButton } from "@mui/material";
 import { RemoveRedEye } from "@mui/icons-material";
-import AddLoan from "./AddLoan";
 import {
+  addFilteredLoans,
   addLoanDetails,
   addLoans,
+  selectFilteredLoans,
   selectLoans,
 } from "../../features/loanSlice";
 import moment from "moment";
 import EditLoan from "./EditLoan";
+import AddLoan from "./AddLoan";
+
+const { Search } = Input;
 
 const formatter = new Intl.NumberFormat("en-US");
 
@@ -105,6 +109,9 @@ const ViewLoan = ({ loan }) => {
 const Loans = () => {
   const dispatch = useDispatch();
 
+  const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState(false);
+
   useEffect(() => {
     const getLoans = async () => {
       let loansArray = [];
@@ -132,18 +139,85 @@ const Loans = () => {
     return { ...loan, key };
   });
 
+  const handleOnSearchChange = () => {
+    if (searchText) {
+      const text = searchText.toLocaleLowerCase();
+      const searchedLoans = loans.filter((loan) => {
+        const firstName = loan?.employeeFirstName.toLocaleLowerCase();
+        const middleName = loan?.employeeMiddleName.toLocaleLowerCase();
+        const lastName = loan?.employeeLastName.toLocaleLowerCase();
+
+        if (
+          firstName.includes(text) ||
+          middleName.includes(text) ||
+          lastName.includes(text)
+        ) {
+          return loan;
+        }
+      });
+
+      // Update state with filtered loans
+      dispatch(addFilteredLoans(searchedLoans));
+      setFilters(true);
+    } else {
+      // Update state with filtered loans
+      dispatch(addFilteredLoans([]));
+      setFilters(false);
+    }
+  };
+
+  const handleSearchText = (value) => {
+    if (value) {
+      setSearchText(value);
+    } else {
+      // Update state with filtered loans
+      dispatch(addFilteredLoans([]));
+      setFilters(false);
+      setSearchText(value);
+    }
+  };
+
+  const filteredLoans = useSelector(selectFilteredLoans);
+
+  const allFilteredLoans = filteredLoans
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const sortedFilteredLoans = allFilteredLoans.map((loan, index) => {
+    const key = index + 1;
+    return { ...loan, key };
+  });
+
   return (
     <div className="px-2">
-      <div className="flex flex-row justify-end">
+      <div className="flex flex-row gap-8 justify-end items-end py-4 px-2">
+        <div>
+          <Space.Compact size="large">
+            <Search
+              placeholder="Search employee name"
+              allowClear
+              onChange={(e) => handleSearchText(e.target.value)}
+              onSearch={() => handleOnSearchChange()}
+            />
+          </Space.Compact>
+        </div>
         <AddLoan />
       </div>
       <div className="pt-8">
-        <Table
-          columns={columns}
-          dataSource={sortedLoans}
-          size="middle"
-          pagination={{ defaultPageSize: 10, size: "middle" }}
-        />
+        {filters ? (
+          <Table
+            columns={columns}
+            dataSource={sortedFilteredLoans}
+            size="middle"
+            pagination={{ defaultPageSize: 15, size: "middle" }}
+          />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={sortedLoans}
+            size="middle"
+            pagination={{ defaultPageSize: 15, size: "middle" }}
+          />
+        )}
       </div>
     </div>
   );

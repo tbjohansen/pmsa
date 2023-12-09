@@ -107,13 +107,11 @@ const columns = [
       </>
     ),
   },
-  // {
-  //   title: "Actions",
-  //   key: "action",
-  //   render: (_, payroll) => (
-  //     <p className="flex flex-row gap-1 justify-start"></p>
-  //   ),
-  // },
+  {
+    title: "Actions",
+    key: "action",
+    render: (_, payroll) => <SalarySlipPDF employee={payroll} />,
+  },
 ];
 
 const DeductionAmount = ({ payroll }) => {
@@ -161,7 +159,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
         employee.designation,
         formatter.format(employee.endMonthSalary),
         formatter.format(employee.paye),
-        formatter.format(employee.nssfAmount),
+        formatter.format(employee?.nssfAmount / 2),
         formatter.format(employee?.endMonthLoanDeduction || 0),
         formatter.format(employee.endMonthNetSalary),
       ];
@@ -214,6 +212,106 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
     >
       <p>Generate </p> <DownloadForOfflineOutlined fontSize="small" />
     </button>
+  );
+};
+
+const SalarySlipPDF = ({ employee }) => {
+  const generatePDF = () => {
+    const pdf = new jsPDF();
+
+    // Specific data values for earnings and deductions
+    const basicSalary = employee?.endMonthSalary;
+    const loans = employee?.endMonthLoanDeduction;
+    const nssf = employee?.nssfAmount / 2;
+    const paye = employee?.paye;
+
+    // Calculate total earnings and deductions
+    const totalEarnings = basicSalary;
+    const totalDeductions = loans + nssf + paye;
+
+    // Add content to PDF
+    const title = "END MONTH SALARY SLIP";
+    const titleWidth =
+      (pdf.getStringUnitWidth(title) * pdf.internal.getFontSize()) /
+      pdf.internal.scaleFactor;
+    const titleX = (pdf.internal.pageSize.width - titleWidth) / 2;
+
+    // Position on the right side
+    // Position on the right side
+    const rightAlignX = pdf.internal.pageSize.width - 14;
+
+    pdf.text(title, titleX, 20);
+    // Employee Information on the right
+    pdf.setFontSize(12);
+    pdf.text(
+      `${employee?.firstName} ${employee?.middleName} ${employee?.lastName}`,
+      rightAlignX,
+      30,
+      { align: "right", fontSize: 10 }
+    );
+    pdf.text(`${employee?.designation}`, rightAlignX, 36, { align: "right" });
+    pdf.text(`${employee?.month} ${employee?.year}`, rightAlignX, 42, {
+      align: "right",
+    });
+
+    // Earnings and Deductions Table
+    pdf.setFontSize(10);
+    pdf.autoTable({
+      startY: 50,
+      head: [["Earnings", "Amount (TZS)", "Deductions", "Amount (TZS)"]],
+      body: [
+        [
+          "Basic Salary",
+          `${formatter.format(basicSalary)}`,
+          "Loans",
+          `${formatter.format(loans)}`,
+        ],
+        ["", ``, "NSSF", `${formatter.format(nssf)}`],
+        ["", ``, "PAYE", `${formatter.format(paye)}`],
+        [
+          "Total Earnings",
+          `${formatter.format(totalEarnings)}`,
+          "Total Deductions",
+          {
+            content: `${formatter.format(totalDeductions)}`,
+            fontStyle: "bold",
+          },
+        ],
+      ],
+      theme: "grid", // Add grid lines
+      styles: { fontSize: 10, cellPadding: 2, valign: "middle" },
+      columnStyles: {
+        0: { halign: "left" },
+        1: { halign: "right" },
+        2: { halign: "left" },
+        3: { halign: "right" },
+      },
+    });
+
+    pdf.setFontSize(12);
+
+    // Net Salary
+    // const netSalary = totalEarnings - totalDeductions;
+    const netSalaryString = `Net Salary: TZS ${formatter.format(
+      employee?.endMonthNetSalary
+    )}`;
+    pdf.text(netSalaryString, rightAlignX, pdf.autoTable.previous.finalY + 10, {
+      align: "right",
+    });
+
+    // Save the PDF
+    pdf.save(
+      `${employee?.firstName} ${employee?.middleName} ${employee?.lastName} End Month Salary Slip ${employee?.month} ${employee?.year}`
+    );
+  };
+
+  return (
+    <div
+      onClick={() => generatePDF()}
+      className="px-4 py-2 w-full flex flex-row gap-2 justify-center cursor-pointer"
+    >
+      <DownloadForOfflineOutlined fontSize="medium" />
+    </div>
   );
 };
 

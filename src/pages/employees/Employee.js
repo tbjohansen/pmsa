@@ -198,7 +198,7 @@ const Employee = () => {
             </p>
             <p className="py-0.5">{employeeDetails?.designation}</p>
             <p className="py-0.5">Employee ID : {employeeDetails?.employeeNumber}</p>
-            <p className="py-0.5">Employee Role : {employeeDetails?.role}</p>
+            <p className="py-0.5 capitalize">Employee Role : {employeeDetails?.role}</p>
           </div>
         </div>
         <div className="w-[50%] px-4 py-4">
@@ -241,6 +241,7 @@ const Employee = () => {
             <Tab label="SALARY" {...a11yProps(1)} />
             <Tab label="LOANS" {...a11yProps(2)} />
             <Tab label="ASSETS" {...a11yProps(3)} />
+            <Tab label="PAY SLIPS" {...a11yProps(3)} />
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0}>
@@ -254,6 +255,8 @@ const Employee = () => {
         </CustomTabPanel>
         <CustomTabPanel value={value} index={3}>
           <EmployeeAssets />
+        </CustomTabPanel>
+        <CustomTabPanel value={value} index={4}>
         </CustomTabPanel>
       </Box>
     </div>

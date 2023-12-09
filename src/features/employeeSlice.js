@@ -6,6 +6,7 @@ const initialState = {
   employeeAssets: [],
   employeeLoans: [],
   additionalInfo: "",
+  filteredEmployees: [],
 };
 
 const employeeSlice = createSlice({
@@ -31,6 +32,9 @@ const employeeSlice = createSlice({
     addAdditionalInfo(state, action) {
       state.additionalInfo = action.payload;
     },
+    addFilteredEmployees(state, action) {
+      state.filteredEmployees = action.payload;
+    },
   },
 });
 
@@ -40,6 +44,7 @@ export const {
   addEmployeesAssets,
   addEmployeesLoans,
   addAdditionalInfo,
+  addFilteredEmployees,
 } = employeeSlice.actions;
 
 export const selectEmployees = (state) => state.employee.employees;
@@ -47,5 +52,6 @@ export const selectEmployeeDetails = (state) => state.employee.employeeDetails;
 export const selectEmployeeLoans = (state) => state.employee.employeeLoans;
 export const selectEmployeeAssets = (state) => state.employee.employeeAssets;
 export const selectAdditionalInfo = (state) => state.employee.additionalInfo;
+export const selectFilteredEmployees = (state) => state.employee.filteredEmployees;
 
 export default employeeSlice.reducer;

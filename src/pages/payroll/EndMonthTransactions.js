@@ -151,7 +151,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
     <button
       type="button"
       onClick={() => generatePDF()}
-      className="px-4 py-1 w-full flex flex-row gap-2 justify-center border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+      className="px-4 py-2 w-full flex flex-row gap-2 justify-center border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
     >
       <p>Generate </p> <DownloadForOfflineOutlined fontSize="small" />
     </button>

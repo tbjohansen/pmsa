@@ -11,7 +11,7 @@ import {
 import moment from "moment";
 import { useDispatch, useSelector } from "react-redux";
 import PropTypes from "prop-types";
-import { Box, Tab, Tabs, Typography } from "@mui/material";
+import { Box, MenuItem, Tab, Tabs, TextField, Typography } from "@mui/material";
 import {
   collection,
   deleteDoc,
@@ -37,7 +37,6 @@ import { DownloadForOfflineOutlined } from "@mui/icons-material";
 import MidMonthTransactions from "./MidMonthTransactions";
 import EndMonthTransactions from "./EndMonthTransactions";
 import { addLoans, selectLoans } from "../../features/loanSlice";
-import { async } from "@firebase/util";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -479,7 +478,7 @@ const MonthPayrollPDF = ({ employees, month, year }) => {
     <button
       type="button"
       onClick={() => generatePDF()}
-      className="px-4 py-1 w-full flex flex-row gap-2 justify-center border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
+      className="px-4 py-2 w-full flex flex-row gap-2 justify-center border rounded-md border-blue-300 hover:bg-blue-300 hover:text-white"
     >
       <p>Generate </p> <DownloadForOfflineOutlined fontSize="small" />
     </button>
@@ -490,6 +489,7 @@ const Payroll = () => {
   const dispatch = useDispatch();
 
   const [value, setValue] = useState(0);
+  const [role, setRole] = useState("");
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
@@ -733,6 +733,15 @@ const Payroll = () => {
     getFilteredMonthPayroll({ dateMonth: monthNumber, dateYear: year });
   };
 
+  const categoryEmployees = employeesList.filter(
+    (employee) => employee?.role === role
+  );
+
+  const filteredEmployees = categoryEmployees.map((employee, index) => {
+    const key = index + 1;
+    return { ...employee, key };
+  });
+
   return (
     <div className="px-2">
       <div className="w-[100%]">
@@ -871,15 +880,35 @@ const Payroll = () => {
             <CustomTabPanel value={value} index={0}>
               {sortedEmployees.length > 0 ? (
                 <div className="flex flex-row justify-between">
-                  <div className="w-[80%]">
-                    {/* <UpdateMonth payroll={loans} /> */}
-                  </div>
-                  <div className="w-[20%] text-sm">
-                    <MonthPayrollPDF
-                      employees={sortedEmployees}
-                      year={yearValue}
-                      month={label}
-                    />
+                  <div className="w-[60%]"></div>
+                  <div className="w-[40%] text-sm flex flex-row gap-2">
+                    <TextField
+                      size="small"
+                      id="outlined-select-currency"
+                      select
+                      label="Role"
+                      className="w-[82%]"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                    >
+                      <MenuItem value={""}>All</MenuItem>
+                      <MenuItem value={"driver"}>Driver</MenuItem>
+                      <MenuItem value={"mechanic"}>Mechanic</MenuItem>
+                      <MenuItem value={"turnboy"}>Turnboy</MenuItem>
+                    </TextField>
+                    {role ? (
+                      <MonthPayrollPDF
+                        employees={filteredEmployees}
+                        year={yearValue}
+                        month={label}
+                      />
+                    ) : (
+                      <MonthPayrollPDF
+                        employees={sortedEmployees}
+                        year={yearValue}
+                        month={label}
+                      />
+                    )}
                   </div>
                 </div>
               ) : null}
